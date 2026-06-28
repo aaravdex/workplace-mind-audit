@@ -104,3 +104,27 @@ export interface CostDriver {
   shareOfTotalPct: number;
   formatted: string;
 }
+
+// ── Persistence (Supabase row shapes) ────────────────────────────────────────
+
+export type AuditStatus = "draft" | "open" | "closed";
+
+export interface Organisation {
+  id: string;
+  name: string;
+  industry: string | null;
+  owner_user_id: string;
+  created_at: string;
+}
+
+export interface Audit {
+  id: string;
+  org_id: string;
+  title: string;
+  status: AuditStatus;
+  public_token: string;
+  segments: string[];
+  opened_at: string | null;
+  closed_at: string | null;
+  created_at: string;
+}

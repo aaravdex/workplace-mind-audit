@@ -3,6 +3,7 @@ import { LeadInputSchema } from "@/lib/leads";
 import { computeBurnoutCost } from "@/lib/calculator";
 import { sendEmail } from "@/lib/email";
 import { renderCalculatorReportEmail } from "@/lib/email-templates";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * POST: capture a qualified lead and email them their estimate.
@@ -30,7 +31,23 @@ export async function POST(request: Request) {
   // Compute server-side so the emailed figures are canonical.
   const result = computeBurnoutCost(lead.calculatorPayload);
 
-  // TODO(Phase 3): persist lead { name, email, role, company_name, ... } to Supabase.
+  // Persist the lead (consenting marketing data) — best-effort.
+  const admin = createAdminClient();
+  if (admin) {
+    try {
+      await admin.from("leads").insert({
+        name: lead.name,
+        email: lead.email,
+        role: lead.role,
+        company_name: lead.companyName,
+        company_size: lead.companySize ?? null,
+        industry: lead.industry ?? null,
+        calculator_payload: lead.calculatorPayload,
+      });
+    } catch (err) {
+      console.error("[leads] failed to persist lead:", err);
+    }
+  }
 
   const email = await sendEmail({
     to: lead.email,

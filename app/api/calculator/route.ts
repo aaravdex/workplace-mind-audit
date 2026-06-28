@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { CalculatorInputSchema, computeBurnoutCost } from "@/lib/calculator";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * POST: compute the burnout-cost breakdown from validated inputs.
@@ -24,6 +25,18 @@ export async function POST(request: Request) {
   }
 
   const result = computeBurnoutCost(parsed.data);
-  // TODO(Phase 3): persist an anonymous calculator_run { payload, result }.
+
+  // Best-effort anonymous analytics — never block the response on it.
+  const admin = createAdminClient();
+  if (admin) {
+    try {
+      await admin
+        .from("calculator_runs")
+        .insert({ payload: parsed.data, result });
+    } catch (err) {
+      console.error("[calculator] failed to log run:", err);
+    }
+  }
+
   return NextResponse.json({ result });
 }
