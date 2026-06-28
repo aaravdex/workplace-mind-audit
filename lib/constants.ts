@@ -1,4 +1,4 @@
-import type { Dimension, RiskBand } from "@/types";
+import type { Currency, Dimension, RiskBand, RiskLevel } from "@/types";
 
 /**
  * ANONYMITY GUARDRAIL.
@@ -58,7 +58,8 @@ export const DIMENSION_META: Record<
 
 /**
  * Risk-band thresholds on the 0–100 scale (higher = healthier).
- * Used by lib/scoring.ts `riskBand()`. Bands are inclusive of their lower bound.
+ * Used by lib/scoring.ts `riskBand()`. Bands are inclusive of both bounds and
+ * contiguous across 0–100 (guarded by tests).
  */
 export const RISK_BAND_THRESHOLDS: {
   band: RiskBand;
@@ -71,9 +72,43 @@ export const RISK_BAND_THRESHOLDS: {
   { band: "Critical", min: 0, max: 39 },
 ];
 
+// ── Currency ──────────────────────────────────────────────────────────────────
+
 /** Supported display currencies (UK + India launch markets). */
 export const CURRENCIES = ["GBP", "INR"] as const;
-export const DEFAULT_CURRENCY = "GBP";
+export const DEFAULT_CURRENCY: Currency = "GBP";
+
+/** Currency display metadata: symbol + Intl locale (en-IN gives lakh grouping). */
+export const CURRENCY_META: Record<
+  Currency,
+  { symbol: string; locale: string }
+> = {
+  GBP: { symbol: "£", locale: "en-GB" },
+  INR: { symbol: "₹", locale: "en-IN" },
+};
+
+// ── Burnout Cost Calculator ───────────────────────────────────────────────────
 
 /** Working days per year — basis for converting annual salary to a daily rate. */
 export const WORKING_DAYS_PER_YEAR = 260;
+
+/** Calculator risk levels, in ascending severity. */
+export const RISK_LEVELS = [
+  "Low",
+  "Moderate",
+  "High",
+  "Critical",
+] as const satisfies readonly RiskLevel[];
+
+/**
+ * Upper-exclusive cutoffs (3 cutoffs → 4 bands) mapping burnout cost as a % of
+ * annual payroll onto RISK_LEVELS: <5 Low, <10 Moderate, <18 High, else Critical.
+ */
+export const COST_PCT_CUTOFFS = [5, 10, 18] as const;
+
+/** Upper-exclusive cutoffs mapping "% of staff in high stress" onto RISK_LEVELS. */
+export const STRESS_PCT_CUTOFFS = [20, 40, 60] as const;
+
+/** The calculator's constant closing call-to-action. */
+export const RUN_AUDIT_CTA =
+  "Run a Workplace Mind Audit to identify the exact causes.";

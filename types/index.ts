@@ -1,6 +1,6 @@
 /**
  * Shared domain types. Kept infra-free so both pure logic (lib/scoring.ts,
- * lib/calculator.ts) and UI can import them. Expanded as later phases land.
+ * lib/calculator.ts) and UI can import them.
  */
 
 /** The 5C model dimensions. */
@@ -11,10 +11,13 @@ export type Dimension =
   | "connection"
   | "confidence";
 
-/** Raw 1–5 Likert answer, or null when a respondent skips the question. */
-export type LikertAnswer = 1 | 2 | 3 | 4 | 5 | null;
+/** A non-null 1–5 Likert value. */
+export type LikertValue = 1 | 2 | 3 | 4 | 5;
 
-/** A single survey question in the bank (content/questions.ts, Phase 1). */
+/** A Likert answer, or null when a respondent skips the question. */
+export type LikertAnswer = LikertValue | null;
+
+/** A single survey question in the bank (content/questions.ts). */
 export interface Question {
   id: number;
   text: string;
@@ -25,7 +28,7 @@ export interface Question {
 
 /**
  * One anonymous response. NO user_id, NO name/email/IP — anonymity is enforced
- * by simply never collecting identity. `answers` maps questionId → Likert value.
+ * by never collecting identity. `answers` maps questionId → Likert value.
  */
 export interface SurveyResponse {
   /** Optional department/team tag, or null for "Prefer not to say". */
@@ -36,14 +39,35 @@ export interface SurveyResponse {
 /** Health band for a 0–100 score (higher = healthier). */
 export type RiskBand = "Healthy" | "Watch" | "Risk" | "Critical";
 
-/** Per-dimension 0–100 scores plus the equal-weighted overall. */
-export type DimensionScores = Record<Dimension, number>;
+/**
+ * Per-dimension 0–100 scores. A dimension is `null` when no non-null answers
+ * exist for it — distinct from a real score of 0, so missing data never reads
+ * as "Critical".
+ */
+export type DimensionScores = Record<Dimension, number | null>;
 
+/** A scored summary for a set of responses (whole audit or one segment). */
 export interface ScoreSummary {
   dimensions: DimensionScores;
-  overall: number;
-  band: RiskBand;
+  overall: number | null;
+  band: RiskBand | null;
   responseCount: number;
+}
+
+/** A segment that cleared the min-N threshold and may be reported. */
+export interface SegmentScoreSummary extends ScoreSummary {
+  segment: string | null;
+}
+
+/** A segment withheld for anonymity (too few responses) — never carries scores. */
+export interface SuppressedSegment {
+  segment: string | null;
+  responseCount: number;
+}
+
+export interface SegmentScoresResult {
+  reported: SegmentScoreSummary[];
+  suppressed: SuppressedSegment[];
 }
 
 /** A rule-based diagnostic flag from combining dimension scores. */
@@ -53,5 +77,30 @@ export interface Insight {
   explanation: string;
 }
 
+// ── Calculator ────────────────────────────────────────────────────────────────
+
 /** Display currency for the calculator and pricing. */
 export type Currency = "GBP" | "INR";
+
+/** Calculator risk classification, ascending severity. */
+export type RiskLevel = "Low" | "Moderate" | "High" | "Critical";
+
+/** How the workforce predominantly works (context signal). */
+export type WorkMode = "onsite" | "hybrid" | "remote";
+
+/** The four modelled annual cost lines. */
+export interface CostBreakdown {
+  absenteeism: number;
+  presenteeism: number;
+  attrition: number;
+  managerOverload: number;
+}
+
+/** A human-readable top cost driver. */
+export interface CostDriver {
+  key: keyof CostBreakdown;
+  label: string;
+  amount: number;
+  shareOfTotalPct: number;
+  formatted: string;
+}
