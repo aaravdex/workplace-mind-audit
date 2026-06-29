@@ -4,6 +4,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { SetupNotice } from "@/components/SetupNotice";
 import { buildAuditScores } from "@/lib/scores-service";
 import { getAuditBenchmarks } from "@/lib/benchmark-service";
+import { getAuditAnnotations } from "@/lib/annotations-service";
+import { isConsultant } from "@/lib/auth";
 import { recommendations } from "@/lib/recommendations";
 import { Heatmap } from "@/components/dashboard/Heatmap";
 import { DimensionRadar } from "@/components/dashboard/DimensionRadar";
@@ -39,6 +41,12 @@ export default async function AuditDashboardPage({
       )
     : null;
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const consultant = isConsultant(user);
+  const annotation = await getAuditAnnotations(supabase, params.auditId);
+
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const surveyUrl = `${siteUrl}/survey/${scores.audit.public_token}`;
 
@@ -59,16 +67,26 @@ export default async function AuditDashboardPage({
           {scores.responseCount === 1 ? "" : "s"} · share the anonymous survey:{" "}
           <span className="break-all text-brand-600">{surveyUrl}</span>
         </p>
-        {scores.sufficient && (
-          <a
-            href={`/api/report/${scores.audit.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-flex items-center gap-2 rounded-md bg-brand-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-800"
-          >
-            Download PDF report ↓
-          </a>
-        )}
+        <div className="mt-4 flex flex-wrap gap-3">
+          {scores.sufficient && (
+            <a
+              href={`/api/report/${scores.audit.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-md bg-brand-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-800"
+            >
+              Download PDF report ↓
+            </a>
+          )}
+          {consultant && (
+            <a
+              href={`/dashboard/${scores.audit.id}/annotate`}
+              className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-brand-700 ring-1 ring-inset ring-brand-200 hover:bg-brand-50"
+            >
+              {annotation ? "Edit interpretation" : "Add interpretation"}
+            </a>
+          )}
+        </div>
       </header>
 
       {!scores.sufficient ? (
@@ -121,6 +139,10 @@ export default async function AuditDashboardPage({
                   </div>
                 ))}
               </div>
+            )}
+
+            {annotation?.executiveSummaryNote && (
+              <ConsultantNote text={annotation.executiveSummaryNote} />
             )}
 
             <RecommendedPriority dimensions={scores.dimensions} />
@@ -177,7 +199,10 @@ export default async function AuditDashboardPage({
             title="Recommended interventions"
             subtitle="Prescribed where action is needed — dimensions in Risk or Critical."
           >
-            <Interventions dimensions={scores.dimensions} />
+            <Interventions
+              dimensions={scores.dimensions}
+              notes={annotation?.dimensionNotes ?? {}}
+            />
           </Section>
         </>
       )}
@@ -336,7 +361,24 @@ function DepartmentTable({ segments }: { segments: SegmentScoresResult }) {
   );
 }
 
-function Interventions({ dimensions }: { dimensions: DimensionScores }) {
+function ConsultantNote({ text }: { text: string }) {
+  return (
+    <div className="mt-6 rounded-lg border-l-4 border-brand-900 bg-brand-50 p-4">
+      <span className="text-xs font-semibold uppercase tracking-wider text-brand-500">
+        Consultant&rsquo;s read
+      </span>
+      <p className="mt-1 text-sm italic text-brand-800">{text}</p>
+    </div>
+  );
+}
+
+function Interventions({
+  dimensions,
+  notes,
+}: {
+  dimensions: DimensionScores;
+  notes: Record<string, string>;
+}) {
   const recs = recommendations(dimensions);
 
   if (recs.length === 0) {
@@ -372,6 +414,11 @@ function Interventions({ dimensions }: { dimensions: DimensionScores }) {
               </li>
             ))}
           </ul>
+          {notes[rec.dimension] && (
+            <p className="mt-3 border-l-4 border-brand-900 bg-brand-50 p-3 text-sm italic text-brand-800">
+              {notes[rec.dimension]}
+            </p>
+          )}
         </div>
       ))}
     </div>
