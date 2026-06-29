@@ -119,12 +119,23 @@ The **intelligence** of the platform lives in two pure, fully-tested files —
 
 - [x] **Phase 0** — Scaffold: Next.js + TS + Tailwind, folder structure, design
       system, `.env.example`, README, green test harness.
-- [ ] **Phase 1** — Pure logic: `scoring.ts`, `calculator.ts`, `questions.ts`,
+- [x] **Phase 1** — Pure logic: `scoring.ts`, `calculator.ts`, `questions.ts`,
       `constants.ts` + full Vitest suite.
-- [ ] **Phase 2** — Burnout Cost Calculator page + `/api/calculator` + `/api/leads` + email.
-- [ ] **Phase 3** — Supabase schema + RLS + auth + create-audit flow.
-- [ ] **Phase 4** — Anonymous survey flow + `/api/responses`.
-- [ ] **Phase 5** — Dashboard (five views) + `/api/scores` with min-N enforcement.
-- [ ] **Phase 6** — PDF report route.
-- [ ] **Phase 7** — Marketing pages + case studies (MDX).
-- [ ] **Phase 8** — Stripe behind `ENABLE_PAYMENTS` (optional).
+- [x] **Phase 2** — Burnout Cost Calculator page + `/api/calculator` + `/api/leads` + email.
+- [x] **Phase 3** — Supabase schema + RLS + auth + create-audit flow.
+- [x] **Phase 4** — Anonymous survey flow + `/api/responses`.
+- [x] **Phase 5** — Dashboard (five views) + `/api/scores` with min-N enforcement.
+- [x] **Phase 6** — PDF report route.
+- [x] **Phase 7** — Marketing pages + case studies (MDX).
+- [x] **Phase 8** — Stripe behind `ENABLE_PAYMENTS` (optional).
+
+All eight phases are complete. The app builds clean, lints clean, and passes the
+full Vitest suite with **no Supabase, Resend, or Stripe credentials** — those
+unlock auth/dashboard, real email, and checkout respectively when configured.
+
+### Enabling payments (Phase 8)
+
+Set `ENABLE_PAYMENTS="true"` and `STRIPE_SECRET_KEY` to turn on Stripe Checkout
+for the paid service tiers. Add `STRIPE_WEBHOOK_SECRET` and point Stripe at
+`/api/stripe/webhook` to receive `checkout.session.completed`. While disabled,
+paid tiers show an "Enquire" link and `/api/checkout` returns `503`.

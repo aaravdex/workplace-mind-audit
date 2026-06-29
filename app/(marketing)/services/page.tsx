@@ -3,6 +3,7 @@ import { Container } from "@/components/ui/Container";
 import { ButtonLink } from "@/components/ui/Button";
 import { SERVICE_TIERS } from "@/content/services";
 import { formatCurrency } from "@/lib/utils";
+import { CheckoutButton } from "@/components/CheckoutButton";
 
 export const metadata: Metadata = {
   title: "Services",
@@ -12,6 +13,7 @@ export const metadata: Metadata = {
 
 const SHOW_PRICING =
   process.env.NEXT_PUBLIC_ENABLE_PUBLIC_PRICING === "true";
+const PAYMENTS_ENABLED = process.env.ENABLE_PAYMENTS === "true";
 
 function priceLabel(priceGBP: number, priceINR: number): string {
   if (priceGBP === 0) return "Free";
@@ -64,15 +66,21 @@ export default function ServicesPage() {
             </ul>
 
             <div className="mt-6">
-              <ButtonLink
-                href={tier.slug === "burnout-cost-report" ? "/calculator" : "/contact"}
-                variant="secondary"
-                className="w-full"
-              >
-                {tier.slug === "burnout-cost-report"
-                  ? "Start free"
-                  : "Enquire"}
-              </ButtonLink>
+              {tier.priceGBP === 0 ? (
+                <ButtonLink
+                  href="/calculator"
+                  variant="secondary"
+                  className="w-full"
+                >
+                  Start free
+                </ButtonLink>
+              ) : PAYMENTS_ENABLED ? (
+                <CheckoutButton slug={tier.slug} />
+              ) : (
+                <ButtonLink href="/contact" variant="secondary" className="w-full">
+                  Enquire
+                </ButtonLink>
+              )}
             </div>
           </div>
         ))}
