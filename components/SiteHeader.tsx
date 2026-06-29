@@ -6,9 +6,9 @@ const NAV = [
   { href: "/calculator", label: "Calculator" },
   { href: "/audit", label: "Audit" },
   { href: "/benchmarks", label: "Benchmarks" },
+  { href: "/methodology", label: "Methodology" },
   { href: "/services", label: "Services" },
   { href: "/case-studies", label: "Case Studies" },
-  { href: "/about", label: "About" },
 ];
 
 export function SiteHeader() {

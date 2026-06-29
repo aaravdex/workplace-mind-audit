@@ -142,6 +142,59 @@ export default function HomePage() {
         </dl>
       </Container>
 
+      {/* Benchmark teaser — the moat */}
+      <section className="bg-brand-900">
+        <Container className="py-16">
+          <div className="grid items-center gap-8 md:grid-cols-[1.3fr_1fr]">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-wider text-accent-300">
+                The benchmark moat
+              </p>
+              <h2 className="mt-3 text-3xl font-semibold text-white">
+                A score is forgettable. Your rank against peers is not.
+              </h2>
+              <p className="mt-4 max-w-prose text-brand-200">
+                Every audit compares you with comparable organisations by sector
+                and size — &ldquo;bottom quartile for Capacity among sub-50-person
+                SaaS companies&rdquo; lands where &ldquo;62/100&rdquo; does not.
+                We only ever show a benchmark once enough organisations stand
+                behind it, so the comparison stays honest.
+              </p>
+              <div className="mt-6">
+                <ButtonLink href="/benchmarks" variant="secondary">
+                  See how you compare
+                </ButtonLink>
+              </div>
+            </div>
+            <div className="rounded-2xl bg-brand-800 p-6">
+              <div className="space-y-3">
+                {[
+                  { label: "Capacity", pct: 22, tone: "bg-red-400" },
+                  { label: "Connection", pct: 41, tone: "bg-amber-400" },
+                  { label: "Confidence", pct: 78, tone: "bg-emerald-400" },
+                ].map((row) => (
+                  <div key={row.label}>
+                    <div className="flex justify-between text-xs text-brand-200">
+                      <span>{row.label}</span>
+                      <span>{row.pct}th pctile</span>
+                    </div>
+                    <div className="mt-1 h-2 rounded-full bg-brand-700">
+                      <div
+                        className={`h-2 rounded-full ${row.tone}`}
+                        style={{ width: `${row.pct}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                <p className="pt-1 text-[11px] text-brand-300">
+                  Illustrative. Real benchmarks appear in your dashboard.
+                </p>
+              </div>
+            </div>
+          </div>
+        </Container>
+      </section>
+
       {/* Who it is for */}
       <section className="bg-brand-50">
         <Container className="py-16">
