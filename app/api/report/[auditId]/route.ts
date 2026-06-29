@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { buildAuditScores } from "@/lib/scores-service";
+import { getAuditBenchmarks } from "@/lib/benchmark-service";
+import { getAuditAnnotations } from "@/lib/annotations-service";
+import { auditAdjustedCost } from "@/lib/costModel";
+import { representativeBaseInputs } from "@/lib/cost-defaults";
 import { renderAuditReportPdf } from "@/components/report/ReportDocument";
 
 // PDF generation is Node-only and must run at request time, owner-authenticated.
@@ -39,7 +43,28 @@ export async function GET(
     );
   }
 
-  const pdf = await renderAuditReportPdf(scores);
+  // Gather the loop, the benchmark, and the consultant's notes for the report.
+  const [benchmarks, annotation] = await Promise.all([
+    getAuditBenchmarks(
+      supabase,
+      scores.audit.sector,
+      scores.audit.sizeBand,
+      scores.dimensions,
+    ),
+    getAuditAnnotations(supabase, scores.audit.id),
+  ]);
+  const cost = auditAdjustedCost(
+    representativeBaseInputs(scores.audit.sizeBand, "GBP"),
+    scores.dimensions,
+    { concentratedSegment: scores.concentratedSegment },
+  );
+
+  const pdf = await renderAuditReportPdf({
+    scores,
+    benchmarks,
+    cost,
+    annotation,
+  });
   const filename = `workplace-mind-audit-${scores.audit.id}.pdf`;
 
   // Wrap the Node Buffer as a Uint8Array for a Web Response body (BodyInit).

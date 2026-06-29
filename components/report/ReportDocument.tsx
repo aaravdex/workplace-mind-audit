@@ -10,6 +10,8 @@ import type { AuditScores } from "@/lib/scores-service";
 import { recommendations } from "@/lib/recommendations";
 import { riskBand } from "@/lib/scoring";
 import { DIMENSIONS, DIMENSION_META, DISCLAIMER } from "@/lib/constants";
+import { COEFFICIENT_CATALOG } from "@/lib/coefficients";
+import { formatCurrency } from "@/lib/utils";
 import {
   BUSINESS_IMPACT,
   interpretationFor,
@@ -17,7 +19,18 @@ import {
   thirtyDayPlan,
 } from "@/lib/report-content";
 import { SERVICE_TIERS } from "@/content/services";
-import type { RiskBand } from "@/types";
+import type { BenchmarkResult } from "@/lib/benchmark";
+import type { AdjustedCostBreakdown } from "@/lib/costModel";
+import type { AuditAnnotation } from "@/lib/annotations";
+import type { Dimension, RiskBand } from "@/types";
+
+/** Everything the consulting-grade report renders. */
+export interface ReportData {
+  scores: AuditScores;
+  benchmarks: Record<Dimension, BenchmarkResult | null> | null;
+  cost: AdjustedCostBreakdown | null;
+  annotation: AuditAnnotation | null;
+}
 
 const C = {
   navy: "#14223A",
@@ -142,11 +155,13 @@ const formatDate = (iso?: string) =>
     year: "numeric",
   });
 
-export function ReportDocument({ scores }: { scores: AuditScores }) {
+export function ReportDocument({ data }: { data: ReportData }) {
+  const { scores, benchmarks, cost, annotation } = data;
   const recs = recommendations(scores.dimensions);
   const plan = thirtyDayPlan(recs);
   const recByDimension = new Map(recs.map((r) => [r.dimension, r]));
   const overallBand = scores.band;
+  const money = (n: number) => formatCurrency(n, cost?.currency ?? "GBP");
 
   return (
     <Document
@@ -240,6 +255,22 @@ export function ReportDocument({ scores }: { scores: AuditScores }) {
             ))}
           </View>
         )}
+
+        {annotation?.executiveSummaryNote ? (
+          <View
+            style={[
+              styles.card,
+              { borderLeftWidth: 3, borderLeftColor: C.navy, backgroundColor: C.bg },
+            ]}
+          >
+            <Text style={[styles.eyebrow, { color: C.slate }]}>
+              Consultant&rsquo;s read
+            </Text>
+            <Text style={[styles.p, { fontStyle: "italic", marginTop: 4 }]}>
+              {annotation.executiveSummaryNote}
+            </Text>
+          </View>
+        ) : null}
 
         <View style={[styles.card, { backgroundColor: C.accentBg, borderColor: "#ECC8AC" }]}>
           <Text style={[styles.h3, { color: C.accentText }]}>
@@ -335,6 +366,22 @@ export function ReportDocument({ scores }: { scores: AuditScores }) {
                     Currently healthy — maintain and monitor.
                   </Text>
                 )}
+                {annotation?.dimensionNotes[d] ? (
+                  <Text
+                    style={[
+                      styles.p,
+                      {
+                        fontStyle: "italic",
+                        marginTop: 6,
+                        paddingLeft: 8,
+                        borderLeftWidth: 2,
+                        borderLeftColor: C.navy,
+                      },
+                    ]}
+                  >
+                    {annotation.dimensionNotes[d]}
+                  </Text>
+                ) : null}
               </View>
             );
           })}
@@ -375,21 +422,113 @@ export function ReportDocument({ scores }: { scores: AuditScores }) {
           })}
         </View>
 
-        <Text style={styles.h2}>Financial impact</Text>
-        <Text style={styles.p}>
-          Workplace risk converts into cost through four levers. Use the Burnout
-          Cost Calculator to produce a figure tailored to your headcount and
-          salaries.
-        </Text>
-        {[
-          ["Absenteeism", "Stress-related sick days × daily pay."],
-          ["Presenteeism", "Reduced output while still at work — usually the largest hidden cost."],
-          ["Attrition", "Turnover multiplied by the cost of replacing each person."],
-          ["Manager overload", "Leadership hours consumed firefighting people issues."],
-        ].map(([title, body]) => (
-          <View key={title} style={styles.card}>
-            <Text style={styles.h3}>{title}</Text>
-            <Text style={styles.p}>{body}</Text>
+        <Text style={styles.h2}>Benchmark vs sector peers</Text>
+        {benchmarks && DIMENSIONS.some((d) => benchmarks[d]) ? (
+          <View>
+            {DIMENSIONS.map((d) => {
+              const b = benchmarks[d];
+              return (
+                <View
+                  key={d}
+                  style={[
+                    styles.row,
+                    {
+                      justifyContent: "space-between",
+                      paddingVertical: 4,
+                      borderBottomWidth: 1,
+                      borderBottomColor: C.line,
+                    },
+                  ]}
+                >
+                  <Text style={styles.p}>{DIMENSION_META[d].label}</Text>
+                  <Text style={styles.p}>
+                    {b
+                      ? `${b.band} · ${b.percentile}th percentile`
+                      : "insufficient peer data"}
+                  </Text>
+                </View>
+              );
+            })}
+            <Text style={[styles.small, { marginTop: 6 }]}>
+              Percentiles are computed across distinct organisations, never
+              individual responses.
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.p}>
+            Insufficient peer data. A benchmark is shown only once at least eight
+            comparable organisations have contributed — protecting those
+            companies and keeping the comparison statistically meaningful.
+          </Text>
+        )}
+        <Footer />
+      </Page>
+
+      {/* ── Financial impact — THE LOOP ───────────────────────── */}
+      <Page style={styles.page}>
+        <Text style={styles.eyebrow}>Financial impact</Text>
+        <Text style={styles.h1}>From generic estimate to your figure</Text>
+        {cost ? (
+          <View style={{ marginTop: 12 }}>
+            <View style={styles.row}>
+              <View style={[styles.card, { flex: 1, marginRight: 6 }]}>
+                <Text style={styles.small}>Generic estimate</Text>
+                <Text style={{ fontSize: 20, fontFamily: "Helvetica-Bold" }}>
+                  {money(cost.genericTotal)}
+                </Text>
+                <Text style={styles.small}>industry averages</Text>
+              </View>
+              <View
+                style={[
+                  styles.card,
+                  { flex: 1, backgroundColor: C.accentBg, borderColor: "#ECC8AC" },
+                ]}
+              >
+                <Text style={[styles.small, { color: C.accentText }]}>
+                  Audit-adjusted
+                </Text>
+                <Text
+                  style={{
+                    fontSize: 20,
+                    fontFamily: "Helvetica-Bold",
+                    color: C.accentText,
+                  }}
+                >
+                  {money(cost.adjustedTotal)}
+                </Text>
+                <Text style={[styles.small, { color: C.accentText }]}>
+                  {cost.delta === 0
+                    ? "in line with generic"
+                    : `${cost.delta > 0 ? "+" : ""}${money(cost.delta)} from your scores`}
+                </Text>
+              </View>
+            </View>
+            {cost.explanation.map((line) => (
+              <Text key={line} style={[styles.p, { marginTop: 4 }]}>
+                • {line}
+              </Text>
+            ))}
+            <Text style={[styles.small, { marginTop: 6 }]}>
+              Modelled estimate based on published research, not a guarantee.
+              Every adjustment is bounded to ±40%.
+            </Text>
+          </View>
+        ) : (
+          <Text style={styles.p}>
+            The audit-adjusted cost model is unavailable for this report.
+          </Text>
+        )}
+
+        <View style={styles.divider} />
+        <Text style={styles.h2}>How we model cost</Text>
+        {COEFFICIENT_CATALOG.map((c) => (
+          <View key={c.key} style={{ marginBottom: 6 }}>
+            <Text style={styles.h3}>
+              {c.name}: {c.value}
+            </Text>
+            <Text style={styles.small}>
+              {c.source.publication}. {c.source.note}
+            </Text>
           </View>
         ))}
         <Footer />
@@ -434,6 +573,6 @@ export function ReportDocument({ scores }: { scores: AuditScores }) {
 }
 
 /** Render the report to a PDF buffer (keeps JSX out of the route handler). */
-export function renderAuditReportPdf(scores: AuditScores): Promise<Buffer> {
-  return renderToBuffer(<ReportDocument scores={scores} />);
+export function renderAuditReportPdf(data: ReportData): Promise<Buffer> {
+  return renderToBuffer(<ReportDocument data={data} />);
 }

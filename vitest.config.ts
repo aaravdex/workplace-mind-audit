@@ -12,6 +12,12 @@ export default defineConfig({
       "@": path.resolve(__dirname, "."),
     },
   },
+  // Use the automatic JSX runtime so tests can render @react-pdf components
+  // (matches Next's transform; avoids a manual React import in .tsx files).
+  esbuild: {
+    jsx: "automatic",
+    jsxImportSource: "react",
+  },
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
