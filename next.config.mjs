@@ -1,8 +1,12 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // MDX (case studies, Phase 7) and @react-pdf/renderer (Phase 6) config will be
-  // layered in during their respective phases to keep each phase's diff legible.
+  // @react-pdf/renderer is heavy and Node-only — keep it out of the bundle and
+  // load it from node_modules at request time in the report route.
+  experimental: {
+    serverComponentsExternalPackages: ["@react-pdf/renderer"],
+  },
+  // MDX (case studies) config is layered in during Phase 7.
   webpack: (config) => {
     // Silence known-harmless warnings from @supabase/* in the Edge middleware:
     //  - realtime-js's dynamic require ("Critical dependency …")

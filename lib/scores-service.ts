@@ -28,6 +28,7 @@ export interface AuditScores {
   audit: {
     id: string;
     title: string;
+    orgName: string | null;
     status: AuditStatus;
     public_token: string;
     created_at: string;
@@ -67,15 +68,26 @@ export async function buildAuditScores(
 ): Promise<AuditScores | null> {
   const { data: audit } = await supabase
     .from("audits")
-    .select("id, title, status, public_token, created_at, segments")
+    .select(
+      "id, title, status, public_token, created_at, segments, organisations(name)",
+    )
     .eq("id", auditId)
     .maybeSingle();
 
   if (!audit) return null;
 
+  // Supabase returns the joined org as an object (or array, depending on the
+  // inferred cardinality) — normalise to a name string.
+  const org = (audit as { organisations?: { name?: string } | { name?: string }[] })
+    .organisations;
+  const orgName = Array.isArray(org)
+    ? (org[0]?.name ?? null)
+    : (org?.name ?? null);
+
   const auditMeta = {
     id: audit.id as string,
     title: audit.title as string,
+    orgName,
     status: audit.status as AuditStatus,
     public_token: audit.public_token as string,
     created_at: audit.created_at as string,
