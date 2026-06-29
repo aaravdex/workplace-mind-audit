@@ -3,9 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { SetupNotice } from "@/components/SetupNotice";
 import { buildAuditScores } from "@/lib/scores-service";
+import { getAuditBenchmarks } from "@/lib/benchmark-service";
 import { recommendations } from "@/lib/recommendations";
 import { Heatmap } from "@/components/dashboard/Heatmap";
 import { DimensionRadar } from "@/components/dashboard/DimensionRadar";
+import { BenchmarkView } from "@/components/dashboard/BenchmarkView";
 import { FinancialImpact } from "@/components/dashboard/FinancialImpact";
 import {
   BAND_META,
@@ -27,6 +29,15 @@ export default async function AuditDashboardPage({
   const supabase = createClient();
   const scores = await buildAuditScores(supabase, params.auditId);
   if (!scores) notFound();
+
+  const benchmarks = scores.sufficient
+    ? await getAuditBenchmarks(
+        supabase,
+        scores.audit.sector,
+        scores.audit.sizeBand,
+        scores.dimensions,
+      )
+    : null;
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const surveyUrl = `${siteUrl}/survey/${scores.audit.public_token}`;
@@ -124,6 +135,21 @@ export default async function AuditDashboardPage({
             <div className="mt-6">
               <DimensionRadar dimensions={scores.dimensions} />
             </div>
+          </Section>
+
+          {/* 3. Benchmark — vs sector/size peers */}
+          <Section
+            title="Benchmark"
+            subtitle="Where you stand against comparable organisations — the relative view a CFO acts on."
+          >
+            {benchmarks && (
+              <BenchmarkView
+                benchmarks={benchmarks}
+                dimensions={scores.dimensions}
+                sector={scores.audit.sector}
+                sizeBand={scores.audit.sizeBand}
+              />
+            )}
           </Section>
 
           {/* 3. Department Comparison */}
