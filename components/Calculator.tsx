@@ -1,11 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import {
   CalculatorInputSchema,
   computeBurnoutCost,
   type CalculatorInput,
 } from "@/lib/calculator";
+import { getCoefficient } from "@/lib/coefficients";
 import { CURRENCY_META } from "@/lib/constants";
 import { cn, formatCurrency } from "@/lib/utils";
 import type { Currency, RiskLevel, WorkMode } from "@/types";
@@ -16,8 +18,10 @@ const DEFAULTS: CalculatorInput = {
   sickDaysPerEmployee: 5,
   highStressPct: 35,
   turnoverRatePct: 15,
-  replacementCostPerEmployee: 8000,
-  productivityLossPct: 12,
+  // Left undefined on purpose: the engine starts from cited research defaults
+  // (shown as sources below), which the user can override.
+  replacementCostPerEmployee: undefined,
+  productivityLossPct: undefined,
   managerHoursOnPeoplePerMonth: 30,
   managerHourlyCost: 60,
   workMode: "hybrid",
@@ -25,6 +29,9 @@ const DEFAULTS: CalculatorInput = {
   recentTurmoil: false,
   currency: "GBP",
 };
+
+// Sensible starting values when a user switches a field OFF research-default.
+const MANUAL_FALLBACK = { replacementCostPerEmployee: 8000, productivityLossPct: 12 };
 
 const RISK_STYLES: Record<RiskLevel, string> = {
   Low: "bg-emerald-50 text-emerald-700 ring-emerald-200",
@@ -116,13 +123,13 @@ export function Calculator() {
             suffix="%"
             onChange={(v) => set("turnoverRatePct", v)}
           />
-          <NumberField
+          <CoefficientField
             id="replacementCostPerEmployee"
             label="Replacement cost / employee"
-            value={input.replacementCostPerEmployee ?? 0}
-            min={0}
-            step={500}
+            value={input.replacementCostPerEmployee}
+            manualFallback={MANUAL_FALLBACK.replacementCostPerEmployee}
             prefix={symbol}
+            step={500}
             onChange={(v) => set("replacementCostPerEmployee", v)}
           />
           <NumberField
@@ -144,13 +151,13 @@ export function Calculator() {
         </Group>
 
         <Group title="Workload signals">
-          <NumberField
+          <CoefficientField
             id="productivityLossPct"
             label="Estimated productivity loss (presenteeism)"
-            value={input.productivityLossPct ?? 0}
-            min={0}
-            max={100}
+            value={input.productivityLossPct}
+            manualFallback={MANUAL_FALLBACK.productivityLossPct}
             suffix="%"
+            step={1}
             onChange={(v) => set("productivityLossPct", v)}
           />
           <NumberField
@@ -308,6 +315,45 @@ function Results({
         <p className="mt-1 text-sm text-accent-900">
           {result.recommendedNextStep}
         </p>
+      </div>
+
+      {/* Sources & assumptions — provenance is the point */}
+      <div className="rounded-xl border border-brand-100 bg-white p-5">
+        <p className="text-sm font-semibold text-brand-900">
+          Assumptions &amp; sources
+        </p>
+        {result.researchDefaults.length > 0 ? (
+          <ul className="mt-3 space-y-2">
+            {result.researchDefaults.map((rd) => {
+              const coef = getCoefficient(rd.coefficientKey);
+              return (
+                <li key={rd.coefficientKey} className="text-xs text-brand-600">
+                  <span className="font-medium text-brand-800">
+                    {coef?.name ?? rd.label}:
+                  </span>{" "}
+                  {coef?.value}
+                  {coef ? (
+                    <span className="text-brand-400">
+                      {" "}
+                      — {coef.source.publication}. Modelled estimate.
+                    </span>
+                  ) : null}
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <p className="mt-2 text-xs text-brand-500">
+            All figures use the values you entered. Every modelled coefficient is
+            documented on the methodology page.
+          </p>
+        )}
+        <Link
+          href="/methodology"
+          className="mt-3 inline-block text-xs font-medium text-accent-600 hover:text-accent-700"
+        >
+          How we model these figures →
+        </Link>
       </div>
 
       <LeadCapture input={input} />
@@ -492,6 +538,81 @@ function NumberField({
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+/**
+ * A number input that can defer to a cited research coefficient. When the user
+ * leaves it on "research default" (value === undefined), the engine fills it
+ * from lib/coefficients and cites the source in the results.
+ */
+function CoefficientField({
+  id,
+  label,
+  value,
+  manualFallback,
+  onChange,
+  prefix,
+  suffix,
+  step = 1,
+}: {
+  id: string;
+  label: string;
+  value: number | undefined;
+  manualFallback: number;
+  onChange: (v: number | undefined) => void;
+  prefix?: string;
+  suffix?: string;
+  step?: number;
+}) {
+  const usingDefault = value === undefined;
+  return (
+    <div className="sm:col-span-2">
+      <label htmlFor={id} className="block text-xs font-medium text-brand-600">
+        {label}
+      </label>
+      <div className="relative mt-1">
+        {prefix && (
+          <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-brand-400">
+            {prefix}
+          </span>
+        )}
+        <input
+          id={id}
+          type="number"
+          inputMode="decimal"
+          min={0}
+          step={step}
+          disabled={usingDefault}
+          placeholder={usingDefault ? "research default" : undefined}
+          value={usingDefault ? "" : value}
+          onChange={(e) =>
+            onChange(e.target.value === "" ? 0 : Number(e.target.value))
+          }
+          className={cn(
+            "h-10 w-full rounded-md border border-brand-200 text-sm text-brand-900 outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-100",
+            usingDefault ? "bg-brand-50 text-brand-400" : "bg-white",
+            prefix ? "pl-7 pr-3" : "px-3",
+          )}
+        />
+        {suffix && (
+          <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-brand-400">
+            {suffix}
+          </span>
+        )}
+      </div>
+      <label className="mt-1.5 flex cursor-pointer items-center gap-2 text-[11px] text-brand-500">
+        <input
+          type="checkbox"
+          checked={usingDefault}
+          onChange={(e) =>
+            onChange(e.target.checked ? undefined : manualFallback)
+          }
+          className="h-3.5 w-3.5 rounded border-brand-300 text-accent-500 focus:ring-accent-400"
+        />
+        Use research default (cited below)
+      </label>
     </div>
   );
 }
