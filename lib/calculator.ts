@@ -8,12 +8,20 @@ import {
   STRESS_PCT_CUTOFFS,
   WORKING_DAYS_PER_YEAR,
 } from "@/lib/constants";
+import {
+  DISENGAGEMENT_PRODUCTIVITY_LOSS,
+  REPLACEMENT_COST_MULTIPLIER_DEFAULT,
+} from "@/lib/coefficients";
 import { formatCurrency, round1, round2 } from "@/lib/utils";
 
 /**
  * Calculator input schema — the single validation boundary. The API route and
  * the client form both parse against this. Percentages are 0–100; money/counts
  * are non-negative; `currency` defaults to GBP.
+ *
+ * `replacementCostPerEmployee` and `productivityLossPct` are OPTIONAL: when
+ * omitted, the engine falls back to a cited coefficient and flags it in
+ * `researchDefaults` so the UI can show the source rather than an invented number.
  */
 export const CalculatorInputSchema = z.object({
   employees: z.number().int().positive(),
@@ -21,8 +29,8 @@ export const CalculatorInputSchema = z.object({
   sickDaysPerEmployee: z.number().min(0),
   highStressPct: z.number().min(0).max(100),
   turnoverRatePct: z.number().min(0).max(100),
-  replacementCostPerEmployee: z.number().min(0),
-  productivityLossPct: z.number().min(0).max(100),
+  replacementCostPerEmployee: z.number().min(0).optional(),
+  productivityLossPct: z.number().min(0).max(100).optional(),
   managerHoursOnPeoplePerMonth: z.number().min(0),
   managerHourlyCost: z.number().min(0),
   workMode: z.enum(["onsite", "hybrid", "remote"]),
@@ -33,6 +41,14 @@ export const CalculatorInputSchema = z.object({
 
 /** Validated calculator input (after defaults applied). */
 export type CalculatorInput = z.infer<typeof CalculatorInputSchema>;
+
+/** Records that a research coefficient stood in for a missing user input. */
+export interface ResearchDefault {
+  field: "replacementCostPerEmployee" | "productivityLossPct";
+  coefficientKey: string;
+  label: string;
+  appliedValue: number;
+}
 
 /** The full computed cost estimate. Every number is a directional estimate. */
 export interface CalculatorResult {
@@ -49,6 +65,8 @@ export interface CalculatorResult {
   riskLevel: RiskLevel;
   /** The 2–3 largest cost lines, human-readable. */
   topDrivers: CostDriver[];
+  /** Which inputs were filled from a cited coefficient (empty when user-supplied). */
+  researchDefaults: ResearchDefault[];
   recommendedNextStep: string;
   isEstimate: true;
   estimateNote: string;
@@ -82,9 +100,7 @@ export function computeBurnoutCost(input: CalculatorInput): CalculatorResult {
     employees,
     avgSalary,
     sickDaysPerEmployee,
-    productivityLossPct,
     turnoverRatePct,
-    replacementCostPerEmployee,
     managerHoursOnPeoplePerMonth,
     managerHourlyCost,
     highStressPct,
@@ -92,6 +108,31 @@ export function computeBurnoutCost(input: CalculatorInput): CalculatorResult {
     recentTurmoil,
     currency,
   } = input;
+
+  // Resolve the two optional inputs, falling back to cited coefficients.
+  const researchDefaults: ResearchDefault[] = [];
+
+  let productivityLossPct = input.productivityLossPct;
+  if (productivityLossPct === undefined) {
+    productivityLossPct = DISENGAGEMENT_PRODUCTIVITY_LOSS * 100;
+    researchDefaults.push({
+      field: "productivityLossPct",
+      coefficientKey: "disengagement_productivity_loss",
+      label: "Productivity loss (research default)",
+      appliedValue: productivityLossPct,
+    });
+  }
+
+  let replacementCostPerEmployee = input.replacementCostPerEmployee;
+  if (replacementCostPerEmployee === undefined) {
+    replacementCostPerEmployee = avgSalary * REPLACEMENT_COST_MULTIPLIER_DEFAULT;
+    researchDefaults.push({
+      field: "replacementCostPerEmployee",
+      coefficientKey: "replacement_cost_multiplier",
+      label: "Replacement cost (research default)",
+      appliedValue: Math.round(replacementCostPerEmployee),
+    });
+  }
 
   const dailySalary = avgSalary / WORKING_DAYS_PER_YEAR;
 
@@ -150,6 +191,7 @@ export function computeBurnoutCost(input: CalculatorInput): CalculatorResult {
     totalAsPctOfPayroll,
     riskLevel,
     topDrivers,
+    researchDefaults,
     recommendedNextStep: RUN_AUDIT_CTA,
     isEstimate: true,
     estimateNote:

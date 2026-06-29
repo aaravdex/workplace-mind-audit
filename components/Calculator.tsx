@@ -119,7 +119,7 @@ export function Calculator() {
           <NumberField
             id="replacementCostPerEmployee"
             label="Replacement cost / employee"
-            value={input.replacementCostPerEmployee}
+            value={input.replacementCostPerEmployee ?? 0}
             min={0}
             step={500}
             prefix={symbol}
@@ -147,7 +147,7 @@ export function Calculator() {
           <NumberField
             id="productivityLossPct"
             label="Estimated productivity loss (presenteeism)"
-            value={input.productivityLossPct}
+            value={input.productivityLossPct ?? 0}
             min={0}
             max={100}
             suffix="%"
