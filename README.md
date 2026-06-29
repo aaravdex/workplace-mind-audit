@@ -17,15 +17,35 @@ Every feature serves one of four jobs:
 
 ---
 
+## What makes it different — sold as a diagnosis, not software
+
+The survey is a commodity; the interpretation is the product. Three architectural
+choices form a moat a generic pulse-survey tool cannot copy:
+
+1. **A compounding benchmark.** Every anonymous response feeds a growing,
+   sector-and-size-segmented pool. "Bottom quartile for Capacity among sub-50
+   SaaS firms" beats "62/100". Guarded by `MIN_COMPANIES_PER_BENCHMARK = 8`.
+2. **A closed audit→cost loop.** Real 5C scores re-derive the financial figure
+   (`lib/costModel.ts`) within a documented cap, producing a defensible delta —
+   "generic £180k → audit-adjusted £247k, concentrated in Operations".
+3. **Evidence-anchored coefficients + a human read.** Every cost assumption is a
+   named constant with a cited `source` (`lib/coefficients.ts`); every report has
+   slots where a consultant injects bespoke interpretation, so it reads authored.
+
+---
+
 ## Ethical & legal guardrails (baked into code, not just copy)
 
 - **Never diagnoses individuals.** Assesses aggregated organisational patterns only.
 - **Aggregate-only reporting.** Individual responses are never shown to employers.
-- **Min-N anonymity guardrail.** No segment (e.g. a department) is reported unless
-  at least `MIN_RESPONSES_PER_SEGMENT = 5` people responded. Enforced in the
-  scoring layer and the scores API — not just the UI — so it cannot be bypassed.
-- **Privacy by design.** The `responses` table stores no name, email, or IP — only
-  the answer payload, an optional segment tag, and a timestamp.
+- **Two-level min-N anonymity, enforced in the data layer.** No segment is reported
+  below `MIN_RESPONSES_PER_SEGMENT = 5`; no sector/size benchmark is shown below
+  `MIN_COMPANIES_PER_BENCHMARK = 8`. Enforced in scoring/benchmark + the APIs, not
+  just the UI.
+- **Privacy by design.** The `responses` table stores no name, email, IP, or user
+  id — only the answer payload, an optional segment tag, and a timestamp.
+- **No overclaiming.** Cost figures are always "modelled estimates based on published
+  research" — association, never proof of causation for a specific company.
 - **Skippable questions.** Every answer is nullable; scoring ignores missing values.
 - **Verbatim disclaimer** renders on every survey and report (see `lib/constants.ts`).
 
@@ -115,23 +135,40 @@ The **intelligence** of the platform lives in two pure, fully-tested files —
 
 ---
 
-## Build roadmap
+## Build roadmap (V2 — benchmark-moat upgrade)
 
-- [x] **Phase 0** — Scaffold: Next.js + TS + Tailwind, folder structure, design
-      system, `.env.example`, README, green test harness.
-- [x] **Phase 1** — Pure logic: `scoring.ts`, `calculator.ts`, `questions.ts`,
-      `constants.ts` + full Vitest suite.
-- [x] **Phase 2** — Burnout Cost Calculator page + `/api/calculator` + `/api/leads` + email.
-- [x] **Phase 3** — Supabase schema + RLS + auth + create-audit flow.
-- [x] **Phase 4** — Anonymous survey flow + `/api/responses`.
-- [x] **Phase 5** — Dashboard (five views) + `/api/scores` with min-N enforcement.
-- [x] **Phase 6** — PDF report route.
-- [x] **Phase 7** — Marketing pages + case studies (MDX).
-- [x] **Phase 8** — Stripe behind `ENABLE_PAYMENTS` (optional).
+This repo evolved from an initial build, so several phases already ship working
+foundations that the V2 phases extend (noted inline). Each phase ends green
+(build + lint + test) and pauses for review.
 
-All eight phases are complete. The app builds clean, lints clean, and passes the
-full Vitest suite with **no Supabase, Resend, or Stripe credentials** — those
-unlock auth/dashboard, real email, and checkout respectively when configured.
+- [x] **Phase 0** — Scaffold + V2 structure reconciliation: routes for
+      `/methodology`, `/benchmarks`, `/dashboard/[auditId]/annotate`; API stubs
+      for `/api/benchmark`, `/api/cost/[auditId]`, `/api/annotations/[auditId]`;
+      `MIN_COMPANIES_PER_BENCHMARK`, `SECTORS`, `SIZE_BANDS`, V2 disclaimer.
+- [ ] **Phase 1** — Pure core: add `coefficients.ts`, `costModel.ts`,
+      `benchmark.ts`, `recommendations.ts` + Vitest. _(scoring, calculator,
+      questions, constants already present.)_
+- [ ] **Phase 2** — Calculator wired to cited coefficients + tooltips +
+      `/methodology` page. _(calculator page, `/api/calculator`, `/api/leads`,
+      email seam already present.)_
+- [ ] **Phase 3** — Supabase: add `sector`/`size_band`, `audit_annotations`,
+      `benchmark_snapshots`, the `consultant` role claim. _(orgs/audits/
+      responses/leads + RLS + auth + create-audit already present.)_
+- [ ] **Phase 4** — Survey + `/api/responses`. _(already present — revisit segments.)_
+- [ ] **Phase 5** — Dashboard views 1, 2, 4, 6 + `/api/scores`. _(present — extend.)_
+- [ ] **Phase 6** — The loop: `/api/cost/[auditId]` + Financial Impact view.
+- [ ] **Phase 7** — Benchmark pipeline + `benchmark_snapshots` + `/api/benchmark`
+      + Benchmark view + public `/benchmarks` teaser.
+- [ ] **Phase 8** — Consultant annotation flow + `/api/annotations`.
+- [ ] **Phase 9** — PDF report incorporating benchmark, the cost loop, and notes.
+      _(base PDF already present.)_
+- [ ] **Phase 10** — Methodology/benchmarks copy + case-study MDX pipeline.
+      _(case studies + most marketing already present.)_
+- [ ] **Phase 11** — Stripe behind `ENABLE_PAYMENTS`. _(already present.)_
+
+The app builds clean, lints clean, and passes the full Vitest suite with **no
+Supabase, Resend, or Stripe credentials** — those unlock auth/dashboard, real
+email, and checkout respectively when configured.
 
 ### Enabling payments (Phase 8)
 

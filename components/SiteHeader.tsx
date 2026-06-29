@@ -5,9 +5,9 @@ import { ButtonLink } from "@/components/ui/Button";
 const NAV = [
   { href: "/calculator", label: "Calculator" },
   { href: "/audit", label: "Audit" },
+  { href: "/benchmarks", label: "Benchmarks" },
   { href: "/services", label: "Services" },
   { href: "/case-studies", label: "Case Studies" },
-  { href: "/resources", label: "Resources" },
   { href: "/about", label: "About" },
 ];
 

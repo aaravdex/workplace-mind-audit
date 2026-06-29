@@ -1,4 +1,11 @@
-import type { Currency, Dimension, RiskBand, RiskLevel } from "@/types";
+import type {
+  Currency,
+  Dimension,
+  RiskBand,
+  RiskLevel,
+  Sector,
+  SizeBand,
+} from "@/types";
 
 /**
  * ANONYMITY GUARDRAIL.
@@ -10,11 +17,21 @@ import type { Currency, Dimension, RiskBand, RiskLevel } from "@/types";
 export const MIN_RESPONSES_PER_SEGMENT = 5;
 
 /**
+ * BENCHMARK ANONYMITY GUARDRAIL.
+ * Never expose a sector/size benchmark computed from fewer than this many
+ * DISTINCT organisations. This protects participating companies AND keeps a
+ * "benchmark" from being computed off a statistically meaningless pool.
+ * Enforced in lib/benchmark.ts and the /api/benchmark layer, not just the UI.
+ */
+export const MIN_COMPANIES_PER_BENCHMARK = 8;
+
+/**
  * Verbatim legal/ethical disclaimer. Must render unchanged on every survey and
- * every report. Do not paraphrase.
+ * every report. Do not paraphrase. The final sentence keeps every modelled
+ * cost figure framed as an estimate, never a guarantee or proof of causation.
  */
 export const DISCLAIMER =
-  "Workplace Mind Audit is an organisational wellbeing and workplace risk assessment tool. It is not a medical, psychiatric, or diagnostic service. It does not diagnose mental health conditions. Results identify aggregated workplace risk patterns to help organisations improve working conditions.";
+  "Workplace Mind Audit is an organisational wellbeing and workplace risk assessment tool. It is not a medical, psychiatric, or diagnostic service. It does not diagnose mental health conditions. Results identify aggregated workplace risk patterns to help organisations improve working conditions. Financial figures are modelled estimates based on published research, not guarantees.";
 
 /** Positioning line used across marketing surfaces. */
 export const TRUST_LINE =
@@ -102,6 +119,31 @@ export const BAND_META: Record<
     ring: "ring-red-200",
   },
 };
+
+// ── Organisation segmentation (benchmark dimensions) ──────────────────────────
+
+/** Headcount bands for org records and benchmark segmentation. */
+export const SIZE_BANDS = [
+  "1-9",
+  "10-49",
+  "50-199",
+  "200-999",
+  "1000+",
+] as const satisfies readonly SizeBand[];
+
+/** Controlled sector list for org records and benchmark segmentation. */
+export const SECTORS = [
+  "SaaS / Software",
+  "Professional Services",
+  "Finance",
+  "Healthcare",
+  "Retail / E-commerce",
+  "Manufacturing",
+  "Education",
+  "Public Sector",
+  "Nonprofit",
+  "Other",
+] as const satisfies readonly Sector[];
 
 // ── Currency ──────────────────────────────────────────────────────────────────
 

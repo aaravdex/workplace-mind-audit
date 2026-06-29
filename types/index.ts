@@ -109,10 +109,28 @@ export interface CostDriver {
 
 export type AuditStatus = "draft" | "open" | "closed";
 
+/** Headcount band — an org record field and a benchmark segmentation key. */
+export type SizeBand = "1-9" | "10-49" | "50-199" | "200-999" | "1000+";
+
+/** Controlled sector list — an org record field and a benchmark segmentation key. */
+export type Sector =
+  | "SaaS / Software"
+  | "Professional Services"
+  | "Finance"
+  | "Healthcare"
+  | "Retail / E-commerce"
+  | "Manufacturing"
+  | "Education"
+  | "Public Sector"
+  | "Nonprofit"
+  | "Other";
+
 export interface Organisation {
   id: string;
   name: string;
   industry: string | null;
+  sector: Sector | null;
+  size_band: SizeBand | null;
   owner_user_id: string;
   created_at: string;
 }

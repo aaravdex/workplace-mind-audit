@@ -10,12 +10,14 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
       links: [
         { href: "/calculator", label: "Burnout Cost Calculator" },
         { href: "/audit", label: "Workplace Mind Audit" },
+        { href: "/benchmarks", label: "Benchmarks" },
         { href: "/services", label: "Services" },
       ],
     },
     {
       heading: "Learn",
       links: [
+        { href: "/methodology", label: "Methodology" },
         { href: "/case-studies", label: "Case Studies" },
         { href: "/resources", label: "Resources" },
         { href: "/about", label: "About" },
