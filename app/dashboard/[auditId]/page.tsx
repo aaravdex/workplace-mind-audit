@@ -6,7 +6,7 @@ import { buildAuditScores } from "@/lib/scores-service";
 import { recommendations } from "@/lib/recommendations";
 import { Heatmap } from "@/components/dashboard/Heatmap";
 import { DimensionRadar } from "@/components/dashboard/DimensionRadar";
-import { Calculator } from "@/components/Calculator";
+import { FinancialImpact } from "@/components/dashboard/FinancialImpact";
 import {
   BAND_META,
   DIMENSION_META,
@@ -134,12 +134,16 @@ export default async function AuditDashboardPage({
             <DepartmentTable segments={scores.segments} />
           </Section>
 
-          {/* 4. Financial Impact */}
+          {/* 4. Financial Impact — THE LOOP */}
           <Section
             title="Financial impact"
-            subtitle="Model the cost of these conditions, contextualised against this audit."
+            subtitle="Your generic estimate, re-derived from this audit's actual 5C scores."
           >
-            <Calculator />
+            <FinancialImpact
+              dimensions={scores.dimensions}
+              sizeBand={scores.audit.sizeBand}
+              concentratedSegment={scores.concentratedSegment}
+            />
           </Section>
 
           {/* 5. Recommended Interventions */}
