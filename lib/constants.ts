@@ -72,6 +72,37 @@ export const RISK_BAND_THRESHOLDS: {
   { band: "Critical", min: 0, max: 39 },
 ];
 
+/** Visual treatment per band: hex for charts, Tailwind classes for UI chips. */
+export const BAND_META: Record<
+  RiskBand,
+  { hex: string; bg: string; text: string; ring: string }
+> = {
+  Healthy: {
+    hex: "#059669",
+    bg: "bg-emerald-50",
+    text: "text-emerald-700",
+    ring: "ring-emerald-200",
+  },
+  Watch: {
+    hex: "#0EA5E9",
+    bg: "bg-sky-50",
+    text: "text-sky-700",
+    ring: "ring-sky-200",
+  },
+  Risk: {
+    hex: "#D97706",
+    bg: "bg-amber-50",
+    text: "text-amber-800",
+    ring: "ring-amber-200",
+  },
+  Critical: {
+    hex: "#DC2626",
+    bg: "bg-red-50",
+    text: "text-red-700",
+    ring: "ring-red-200",
+  },
+};
+
 // ── Currency ──────────────────────────────────────────────────────────────────
 
 /** Supported display currencies (UK + India launch markets). */
