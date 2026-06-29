@@ -3,11 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { parseSegments } from "@/lib/audits";
+import { SECTORS, SIZE_BANDS } from "@/lib/constants";
 
 export function CreateAuditForm() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [organisationName, setOrganisationName] = useState("");
+  const [sector, setSector] = useState<string>(SECTORS[0]);
+  const [sizeBand, setSizeBand] = useState<string>(SIZE_BANDS[2]);
   const [segmentsRaw, setSegmentsRaw] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -24,6 +27,8 @@ export function CreateAuditForm() {
         body: JSON.stringify({
           title,
           organisationName,
+          sector,
+          sizeBand,
           segments: parseSegments(segmentsRaw),
         }),
       });
@@ -59,6 +64,45 @@ export function CreateAuditForm() {
           placeholder="Acme Ltd"
         />
       </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label htmlFor="sector" className="block text-xs font-medium text-brand-600">
+            Sector
+          </label>
+          <select
+            id="sector"
+            value={sector}
+            onChange={(e) => setSector(e.target.value)}
+            className={field}
+          >
+            {SECTORS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="sizeBand" className="block text-xs font-medium text-brand-600">
+            Company size
+          </label>
+          <select
+            id="sizeBand"
+            value={sizeBand}
+            onChange={(e) => setSizeBand(e.target.value)}
+            className={field}
+          >
+            {SIZE_BANDS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+      <p className="text-[11px] text-brand-400">
+        Sector and size let us benchmark you against comparable organisations.
+      </p>
       <div>
         <label htmlFor="title" className="block text-xs font-medium text-brand-600">
           Audit title

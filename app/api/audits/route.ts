@@ -56,6 +56,8 @@ export async function POST(request: Request) {
       .insert({
         name: input.organisationName,
         industry: input.industry ?? null,
+        sector: input.sector ?? null,
+        size_band: input.sizeBand ?? null,
         owner_user_id: user.id,
       })
       .select("id")
