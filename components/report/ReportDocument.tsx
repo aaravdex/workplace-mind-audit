@@ -74,8 +74,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     fontFamily: "Helvetica-Bold",
   },
-  h1: { fontSize: 26, fontFamily: "Helvetica-Bold", marginTop: 8 },
-  h2: { fontSize: 15, fontFamily: "Helvetica-Bold", marginBottom: 6 },
+  h1: { fontSize: 26, fontFamily: "Helvetica-Bold", marginTop: 8, lineHeight: 1.2 },
+  h2: { fontSize: 15, fontFamily: "Helvetica-Bold", marginBottom: 6, lineHeight: 1.2 },
   h3: { fontSize: 11, fontFamily: "Helvetica-Bold" },
   p: { color: C.navy700, marginBottom: 6 },
   small: { fontSize: 8, color: C.slate400 },
@@ -175,10 +175,12 @@ export function ReportDocument({ data }: { data: ReportData }) {
         </Text>
         <View style={{ marginTop: 180 }}>
           <Text style={{ fontSize: 13, color: "#9DB6D1" }}>Prepared for</Text>
-          <Text style={{ fontSize: 32, fontFamily: "Helvetica-Bold" }}>
+          <Text
+            style={{ fontSize: 32, fontFamily: "Helvetica-Bold", lineHeight: 1.2, marginTop: 4 }}
+          >
             {scores.audit.orgName ?? "Your organisation"}
           </Text>
-          <Text style={{ fontSize: 14, color: "#C5D5E6", marginTop: 6 }}>
+          <Text style={{ fontSize: 14, color: "#C5D5E6", marginTop: 10 }}>
             {scores.audit.title}
           </Text>
         </View>
@@ -211,7 +213,7 @@ export function ReportDocument({ data }: { data: ReportData }) {
         <Text style={styles.h1}>Workplace Mind Score</Text>
 
         <View style={[styles.row, { alignItems: "center", marginVertical: 14 }]}>
-          <Text style={{ fontSize: 48, fontFamily: "Helvetica-Bold" }}>
+          <Text style={{ fontSize: 48, fontFamily: "Helvetica-Bold", lineHeight: 1.1 }}>
             {scores.overall}
           </Text>
           <View style={{ marginLeft: 14 }}>
@@ -336,6 +338,7 @@ export function ReportDocument({ data }: { data: ReportData }) {
                       style={{
                         fontSize: 16,
                         fontFamily: "Helvetica-Bold",
+                        lineHeight: 1.2,
                         marginRight: 6,
                       }}
                     >
@@ -411,7 +414,7 @@ export function ReportDocument({ data }: { data: ReportData }) {
                 <Text style={{ fontSize: 8, color: C.slate }}>
                   {DIMENSION_META[d].label}
                 </Text>
-                <Text style={{ fontSize: 20, fontFamily: "Helvetica-Bold" }}>
+                <Text style={{ fontSize: 20, fontFamily: "Helvetica-Bold", lineHeight: 1.2 }}>
                   {score ?? "—"}
                 </Text>
                 <Text style={{ fontSize: 8, color: band ? BAND_HEX[band] : C.slate400 }}>

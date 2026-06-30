@@ -11,10 +11,16 @@ import { Resend } from "resend";
 const FROM =
   process.env.EMAIL_FROM ?? "Workplace Mind Audit <onboarding@resend.dev>";
 
+export interface EmailAttachment {
+  filename: string;
+  content: Buffer;
+}
+
 export interface EmailMessage {
   to: string;
   subject: string;
   html: string;
+  attachments?: EmailAttachment[];
 }
 
 export interface EmailResult {
@@ -26,8 +32,11 @@ export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
   const apiKey = process.env.RESEND_API_KEY;
 
   if (!apiKey) {
+    const note = message.attachments?.length
+      ? ` (+${message.attachments.length} attachment)`
+      : "";
     console.info(
-      `[email:stub] would send "${message.subject}" → ${message.to}`,
+      `[email:stub] would send "${message.subject}" → ${message.to}${note}`,
     );
     return { delivered: false, id: null };
   }
@@ -39,6 +48,10 @@ export async function sendEmail(message: EmailMessage): Promise<EmailResult> {
       to: message.to,
       subject: message.subject,
       html: message.html,
+      attachments: message.attachments?.map((a) => ({
+        filename: a.filename,
+        content: a.content,
+      })),
     });
     if (error) {
       console.error("[email] delivery failed:", error);

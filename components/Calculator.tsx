@@ -390,11 +390,38 @@ function LeadCapture({ input }: { input: CalculatorInput }) {
     }
   }
 
+  async function downloadPdf() {
+    const res = await fetch("/api/calculator-report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...input, company: form.companyName }),
+    });
+    if (!res.ok) return;
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "burnout-cost-report.pdf";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   if (status === "success") {
     return (
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
-        Thanks — your detailed report is on its way to your inbox. The on-screen
-        estimate above is always free.
+        <p>
+          Thanks — we&rsquo;ve emailed your report. The on-screen estimate above
+          is always free.
+        </p>
+        <button
+          type="button"
+          onClick={downloadPdf}
+          className="mt-3 inline-flex items-center gap-2 rounded-md bg-brand-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-brand-800"
+        >
+          Download the PDF now ↓
+        </button>
       </div>
     );
   }

@@ -3,13 +3,15 @@ import { LeadInputSchema } from "@/lib/leads";
 import { computeBurnoutCost } from "@/lib/calculator";
 import { sendEmail } from "@/lib/email";
 import { renderCalculatorReportEmail } from "@/lib/email-templates";
+import { renderBurnoutCostReportPdf } from "@/components/report/BurnoutCostReport";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+export const runtime = "nodejs";
+
 /**
- * POST: capture a qualified lead and email them their estimate.
- * Consenting marketing data — kept entirely separate from anonymous survey
- * responses. Persistence to the `leads` table is wired in Phase 3; the email
- * report attaches the full PDF once Phase 6 lands.
+ * POST: capture a qualified lead and email them their estimate with the branded
+ * Burnout Cost Report PDF attached. Consenting marketing data — kept entirely
+ * separate from anonymous survey responses.
  */
 export async function POST(request: Request) {
   let body: unknown;
@@ -49,10 +51,13 @@ export async function POST(request: Request) {
     }
   }
 
+  const pdf = await renderBurnoutCostReportPdf(result, lead.companyName);
+
   const email = await sendEmail({
     to: lead.email,
     subject: "Your burnout cost estimate — Workplace Mind Audit",
     html: renderCalculatorReportEmail({ name: lead.name, result }),
+    attachments: [{ filename: "burnout-cost-report.pdf", content: pdf }],
   });
 
   return NextResponse.json({ ok: true, emailed: email.delivered });
