@@ -38,3 +38,7 @@ next-env.d.ts
 # editor / os
 .idea/
 .vscode/
+
+# Generated client deliverables + ad-hoc capture scripts (kept on disk, out of git)
+/client-deliverables/
+/capture.mjs

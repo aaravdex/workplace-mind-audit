@@ -8,6 +8,11 @@ export const metadata: Metadata = {
     "Book a leadership debrief, ask about a pilot, or just start with the free calculator.",
 };
 
+// Real values are supplied via env (documented in .env.example). Until then the
+// page shows an honest "coming soon" state — never a dead link or fake address.
+const BOOKING_URL = process.env.BOOKING_URL?.trim();
+const CONTACT_EMAIL = process.env.CONTACT_EMAIL?.trim();
+
 export default function ContactPage() {
   return (
     <Container className="max-w-3xl py-14">
@@ -31,12 +36,15 @@ export default function ContactPage() {
             A 30-minute intro to see whether an audit fits your organisation.
           </p>
           <div className="mt-4">
-            <ButtonLink href="#" variant="secondary">
-              Open booking calendar
-            </ButtonLink>
-            <p className="mt-2 text-xs text-brand-400">
-              Booking link placeholder — connect your scheduler here.
-            </p>
+            {BOOKING_URL ? (
+              <ButtonLink href={BOOKING_URL} variant="secondary">
+                Open booking calendar
+              </ButtonLink>
+            ) : (
+              <span className="inline-block rounded-md bg-brand-50 px-3 py-2 text-sm text-brand-400 ring-1 ring-inset ring-brand-100">
+                Booking link coming soon
+              </span>
+            )}
           </div>
         </div>
 
@@ -48,12 +56,18 @@ export default function ContactPage() {
             Prefer to write? Reach us directly and we will respond within two
             working days.
           </p>
-          <a
-            href="mailto:hello@workplacemindaudit.example"
-            className="mt-4 inline-block text-sm font-medium text-accent-600 hover:text-accent-700"
-          >
-            hello@workplacemindaudit.example →
-          </a>
+          {CONTACT_EMAIL ? (
+            <a
+              href={`mailto:${CONTACT_EMAIL}`}
+              className="mt-4 inline-block text-sm font-medium text-accent-600 hover:text-accent-700"
+            >
+              {CONTACT_EMAIL} →
+            </a>
+          ) : (
+            <p className="mt-4 text-sm text-brand-400">
+              Contact details coming soon.
+            </p>
+          )}
         </div>
       </div>
 

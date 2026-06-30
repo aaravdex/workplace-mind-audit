@@ -13,6 +13,7 @@ import { Heatmap } from "@/components/dashboard/Heatmap";
 import { DimensionRadar } from "@/components/dashboard/DimensionRadar";
 import { BenchmarkView } from "@/components/dashboard/BenchmarkView";
 import { FinancialImpact } from "@/components/dashboard/FinancialImpact";
+import { CalculatorInputSchema } from "@/lib/calculator";
 import {
   BAND_META,
   DIMENSION_META,
@@ -48,6 +49,17 @@ export default async function AuditDashboardPage({
   } = await supabase.auth.getUser();
   const consultant = isConsultant(user);
   const annotation = await getAuditAnnotations(supabase, params.auditId);
+
+  // The owner's saved business figures for the cost loop, if any.
+  const { data: auditRow } = await supabase
+    .from("audits")
+    .select("cost_inputs")
+    .eq("id", params.auditId)
+    .maybeSingle();
+  const savedInputsParsed = auditRow?.cost_inputs
+    ? CalculatorInputSchema.safeParse(auditRow.cost_inputs)
+    : null;
+  const savedInputs = savedInputsParsed?.success ? savedInputsParsed.data : null;
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
   const surveyUrl = `${siteUrl}/survey/${scores.audit.public_token}`;
@@ -193,6 +205,8 @@ export default async function AuditDashboardPage({
               dimensions={scores.dimensions}
               sizeBand={scores.audit.sizeBand}
               concentratedSegment={scores.concentratedSegment}
+              auditId={scores.audit.id}
+              savedInputs={savedInputs}
             />
           </Section>
 

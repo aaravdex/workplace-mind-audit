@@ -8,6 +8,9 @@ import Silence, {
 import ManagerSupport, {
   meta as managerSupport,
 } from "./how-manager-support-reduces-burnout-risk.mdx";
+import EngineeringBurnout, {
+  meta as engineeringBurnout,
+} from "./saas-engineering-burnout-after-a-release-crunch.mdx";
 
 export interface CaseStudyMeta {
   slug: string;
@@ -24,6 +27,7 @@ export interface CaseStudyEntry {
 
 /** Ordered list of case studies, sourced from the MDX files. */
 export const CASE_STUDIES: CaseStudyEntry[] = [
+  { meta: engineeringBurnout, Content: EngineeringBurnout },
   { meta: startups, Content: Startups },
   { meta: silence, Content: Silence },
   { meta: managerSupport, Content: ManagerSupport },

@@ -24,15 +24,18 @@ export function SurveyForm({
   token,
   title,
   segments,
+  initialDone = false,
 }: {
   token: string;
   title: string;
   segments: string[];
+  /** Dev/preview only: render the thank-you state directly. */
+  initialDone?: boolean;
 }) {
   const [answers, setAnswers] = useState<Answers>({});
   const [segment, setSegment] = useState<string>(PREFER_NOT);
   const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">(
-    "idle",
+    initialDone ? "done" : "idle",
   );
 
   const answered = useMemo(

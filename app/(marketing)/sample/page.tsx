@@ -6,62 +6,33 @@ import { Heatmap } from "@/components/dashboard/Heatmap";
 import { DimensionRadar } from "@/components/dashboard/DimensionRadar";
 import { BenchmarkView } from "@/components/dashboard/BenchmarkView";
 import { FinancialImpact } from "@/components/dashboard/FinancialImpact";
+import { InterventionPlan } from "@/components/dashboard/InterventionPlan";
 import { recommendations } from "@/lib/recommendations";
 import { ninetyDayPlan } from "@/lib/report-content";
-import { InterventionPlan } from "@/components/dashboard/InterventionPlan";
-import { combinedInsights, riskBand } from "@/lib/scoring";
-import { BAND_META, DIMENSIONS, DIMENSION_META, MIN_RESPONSES_PER_SEGMENT } from "@/lib/constants";
+import { getNorthwindDemo } from "@/lib/demo/northwind";
+import { BAND_META, DIMENSION_META, MIN_RESPONSES_PER_SEGMENT } from "@/lib/constants";
 import { cn } from "@/lib/utils";
-import type { BenchmarkResult } from "@/lib/benchmark";
-import type { Dimension, DimensionScores, RiskBand } from "@/types";
+import type { Dimension, RiskBand } from "@/types";
 
 export const metadata: Metadata = {
   title: "Sample report",
   description:
-    "An illustrative Workplace Mind Audit dashboard — the exact views a client receives, with realistic seeded data.",
+    "A Workplace Mind Audit dashboard for a worked example — the exact views a client receives, computed by the real engine.",
 };
 
-// ── Seeded example: a 90-person SaaS company under delivery pressure ───────────
-const dimensions: DimensionScores = {
-  capacity: 41,
-  clarity: 63,
-  control: 58,
-  connection: 44,
-  confidence: 52,
-};
-const overall = 52;
-const responseCount = 36;
-
-const benchmarks: Record<Dimension, BenchmarkResult | null> = {
-  capacity: { score: 41, percentile: 18, band: "bottom quartile", nCompanies: 14 },
-  clarity: { score: 63, percentile: 61, band: "above median", nCompanies: 14 },
-  control: { score: 58, percentile: 47, band: "below median", nCompanies: 14 },
-  connection: { score: 44, percentile: 22, band: "bottom quartile", nCompanies: 14 },
-  confidence: { score: 52, percentile: 39, band: "below median", nCompanies: 14 },
-};
-
-const reportedSegments = [
-  { segment: "Engineering", responseCount: 14, overall: 47, band: "Risk" as RiskBand },
-  { segment: "Sales", responseCount: 9, overall: 56, band: "Watch" as RiskBand },
-  { segment: "Customer Success", responseCount: 6, overall: 50, band: "Risk" as RiskBand },
-];
-const suppressedCount = 2;
-
-const execNote =
-  "The Capacity and Connection gaps concentrate in Engineering, tracking the two senior departures and the Q2 release crunch. Read this as a workload-and-support problem, not a perks problem — protect recovery time and coach the new EMs before adding headcount.";
-const dimensionNotes: Partial<Record<Dimension, string>> = {
-  capacity: "Engineering has been on a release sprint for nine weeks. Recovery norms, not resilience training, are the lever here.",
-  connection: "Two senior departures left teams without consistent 1:1s. Re-establishing manager cadence should come first.",
-};
-
-const ranked = DIMENSIONS.map((d) => ({
-  dimension: d,
-  score: dimensions[d] as number,
-  band: riskBand(dimensions[d] as number),
-})).sort((a, b) => b.score - a.score);
-
-const insights = combinedInsights(dimensions);
+// All figures below are computed by the real engines from generated raw survey
+// answers (see lib/demo/northwind.ts). Nothing here is hand-picked.
+const { scores, benchmarks, annotation } = getNorthwindDemo();
+const dimensions = scores.dimensions;
+const overall = scores.overall;
+const responseCount = scores.responseCount;
+const ranked = scores.ranked;
+const insights = scores.insights;
 const recs = recommendations(dimensions);
+const reportedSegments = scores.segments.reported;
+const suppressedCount = scores.segments.suppressed.length;
+const execNote = annotation.executiveSummaryNote;
+const dimensionNotes: Partial<Record<Dimension, string>> = annotation.dimensionNotes;
 
 export default function SampleReportPage() {
   return (
@@ -76,9 +47,10 @@ export default function SampleReportPage() {
             What a client actually receives
           </h1>
           <p className="mt-4 text-lg text-brand-600">
-            This is the live dashboard for an illustrative 90-person SaaS company.
-            The same six views download as a consulting-grade PDF. Figures are a
-            worked example, not a real organisation.
+            The live dashboard for a worked example, a 90-person SaaS company.
+            Every score, benchmark, cost, and plan is computed by the real engine
+            from {responseCount} generated survey responses — not hand-picked. The
+            same views download as a consulting-grade PDF.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <ButtonLink href="/audit">Run your own audit</ButtonLink>
@@ -105,7 +77,7 @@ export default function SampleReportPage() {
           </header>
 
           {/* 1. Executive summary */}
-          <Section title="1 · Executive summary" subtitle="The one-screen read for leadership.">
+          <Section id="view-exec" title="1 · Executive summary" subtitle="The one-screen read for leadership.">
             <div className="grid gap-6 md:grid-cols-[auto_1fr]">
               <div className="rounded-2xl bg-brand-900 p-6 text-center text-white">
                 <div className="text-xs uppercase tracking-wider text-brand-300">
@@ -113,7 +85,7 @@ export default function SampleReportPage() {
                 </div>
                 <div className="mt-1 font-serif text-5xl font-semibold">{overall}</div>
                 <div className="mt-2">
-                  <BandBadge band="Risk" />
+                  <BandBadge band={scores.band} />
                 </div>
               </div>
               <div className="grid gap-6 sm:grid-cols-2">
@@ -149,7 +121,7 @@ export default function SampleReportPage() {
           </Section>
 
           {/* 2. Heatmap */}
-          <Section title="2 · 5C risk heatmap" subtitle="Each dimension scored 0–100 and banded for instant triage.">
+          <Section id="view-heatmap" title="2 · 5C risk heatmap" subtitle="Each dimension scored 0–100 and banded for instant triage.">
             <Heatmap dimensions={dimensions} />
             <div className="mt-6">
               <DimensionRadar dimensions={dimensions} />
@@ -157,17 +129,18 @@ export default function SampleReportPage() {
           </Section>
 
           {/* 3. Benchmark */}
-          <Section title="3 · Benchmark" subtitle="Where you stand against comparable organisations — the relative view a CFO acts on.">
+          <Section id="view-benchmark" title="3 · Benchmark" subtitle="Where you stand against comparable organisations — the relative view a CFO acts on.">
             <BenchmarkView
               benchmarks={benchmarks}
               dimensions={dimensions}
-              sector="SaaS / Software"
-              sizeBand="50-199"
+              sector={scores.audit.sector}
+              sizeBand={scores.audit.sizeBand}
             />
           </Section>
 
           {/* 4. Department comparison */}
           <Section
+            id="view-departments"
             title="4 · Department comparison"
             subtitle={`Only segments with at least ${MIN_RESPONSES_PER_SEGMENT} responses are shown — anonymity by design.`}
           >
@@ -183,10 +156,10 @@ export default function SampleReportPage() {
                 </thead>
                 <tbody>
                   {reportedSegments.map((seg) => (
-                    <tr key={seg.segment} className="border-b border-brand-50">
-                      <td className="py-2 pr-4 text-brand-800">{seg.segment}</td>
+                    <tr key={seg.segment ?? "unsegmented"} className="border-b border-brand-50">
+                      <td className="py-2 pr-4 text-brand-800">{seg.segment ?? "Prefer not to say"}</td>
                       <td className="py-2 pr-4 text-brand-600">{seg.responseCount}</td>
-                      <td className="py-2 pr-4 font-semibold text-brand-900">{seg.overall}</td>
+                      <td className="py-2 pr-4 font-semibold text-brand-900">{seg.overall ?? "—"}</td>
                       <td className="py-2">
                         <BandBadge band={seg.band} />
                       </td>
@@ -202,12 +175,16 @@ export default function SampleReportPage() {
           </Section>
 
           {/* 5. Financial impact — the loop */}
-          <Section title="5 · Financial impact" subtitle="Your generic estimate, re-derived from this audit's actual 5C scores.">
-            <FinancialImpact dimensions={dimensions} sizeBand="50-199" concentratedSegment="Engineering" />
+          <Section id="view-financial" title="5 · Financial impact" subtitle="Your generic estimate, re-derived from this audit's actual 5C scores.">
+            <FinancialImpact
+              dimensions={dimensions}
+              sizeBand={scores.audit.sizeBand}
+              concentratedSegment={scores.concentratedSegment}
+            />
           </Section>
 
           {/* 6. Interventions */}
-          <Section title="6 · Recommended interventions" subtitle="Prescribed where action is needed — dimensions in Risk or Critical.">
+          <Section id="view-interventions" title="6 · Recommended interventions" subtitle="Prescribed where action is needed — dimensions in Risk or Critical.">
             <div className="space-y-4">
               {recs.map((rec) => (
                 <div key={rec.dimension} className="rounded-xl border border-brand-100 p-5">
@@ -238,6 +215,7 @@ export default function SampleReportPage() {
 
           {/* 7. 90-day intervention plan */}
           <Section
+            id="view-plan"
             title="7 · 90-day intervention plan"
             subtitle="A phased programme: stabilise, rebuild, then embed and re-measure."
           >
@@ -254,16 +232,18 @@ export default function SampleReportPage() {
 }
 
 function Section({
+  id,
   title,
   subtitle,
   children,
 }: {
+  id?: string;
   title: string;
   subtitle?: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-brand-100 bg-white p-6">
+    <section id={id} className="scroll-mt-6 rounded-2xl border border-brand-100 bg-white p-6">
       <h2 className="font-serif text-xl font-semibold text-brand-900">{title}</h2>
       {subtitle && <p className="mt-1 text-sm text-brand-500">{subtitle}</p>}
       <div className="mt-5">{children}</div>
@@ -271,7 +251,8 @@ function Section({
   );
 }
 
-function BandBadge({ band }: { band: RiskBand }) {
+function BandBadge({ band }: { band: RiskBand | null }) {
+  if (!band) return <span className="text-xs text-brand-300">No data</span>;
   const m = BAND_META[band];
   return (
     <span

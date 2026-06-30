@@ -11,6 +11,12 @@ import { Resend } from "resend";
 const FROM =
   process.env.EMAIL_FROM ?? "Workplace Mind Audit <onboarding@resend.dev>";
 
+/** True when a real email provider is wired up. The UI must never claim an
+ * email was sent when this is false. */
+export function isEmailConfigured(): boolean {
+  return Boolean(process.env.RESEND_API_KEY);
+}
+
 export interface EmailAttachment {
   filename: string;
   content: Buffer;

@@ -33,16 +33,20 @@ export function BenchmarkView({
 
   if (!anyData) {
     return (
-      <div className="rounded-lg bg-brand-50 p-4 text-sm text-brand-600">
-        <p>
-          Insufficient peer data. We only show a benchmark once at least{" "}
+      <div className="rounded-lg border border-brand-100 bg-brand-50 p-4 text-sm text-brand-600">
+        <div className="flex items-center gap-2 font-medium text-brand-800">
+          <span aria-hidden>🔒</span> Sector benchmark unlocks as the pool grows
+        </div>
+        <p className="mt-2">
+          We show your standing against peers only once at least{" "}
           {MIN_COMPANIES_PER_BENCHMARK} organisations of your sector and size have
           contributed — both to protect those companies and because a benchmark
-          built on a handful of firms is meaningless.
+          built on a handful of firms would be meaningless. Your absolute 5C
+          scores and cost analysis are shown above and are unaffected.
         </p>
         <p className="mt-2 text-brand-400">
-          Your anonymous responses are helping build the {sector} · {sizeBand}{" "}
-          pool. This unlocks automatically.
+          Your participation is helping build the {sector} · {sizeBand} pool; this
+          view fills in automatically once the threshold is reached.
         </p>
       </div>
     );

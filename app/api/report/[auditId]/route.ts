@@ -4,6 +4,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { buildAuditScores } from "@/lib/scores-service";
 import { getAuditBenchmarks } from "@/lib/benchmark-service";
 import { getAuditAnnotations } from "@/lib/annotations-service";
+import { CalculatorInputSchema } from "@/lib/calculator";
 import { auditAdjustedCost } from "@/lib/costModel";
 import { representativeBaseInputs } from "@/lib/cost-defaults";
 import { renderAuditReportPdf } from "@/components/report/ReportDocument";
@@ -44,7 +45,7 @@ export async function GET(
   }
 
   // Gather the loop, the benchmark, and the consultant's notes for the report.
-  const [benchmarks, annotation] = await Promise.all([
+  const [benchmarks, annotation, auditRow] = await Promise.all([
     getAuditBenchmarks(
       supabase,
       scores.audit.sector,
@@ -52,18 +53,33 @@ export async function GET(
       scores.dimensions,
     ),
     getAuditAnnotations(supabase, scores.audit.id),
+    supabase
+      .from("audits")
+      .select("cost_inputs")
+      .eq("id", scores.audit.id)
+      .maybeSingle(),
   ]);
-  const cost = auditAdjustedCost(
-    representativeBaseInputs(scores.audit.sizeBand, "GBP"),
-    scores.dimensions,
-    { concentratedSegment: scores.concentratedSegment },
-  );
+
+  // Use the owner's real figures when present; otherwise sector-average, and
+  // flag it so the report never presents a default as bespoke.
+  const savedInputs = auditRow.data?.cost_inputs
+    ? CalculatorInputSchema.safeParse(auditRow.data.cost_inputs)
+    : null;
+  const costIsRepresentative = !savedInputs?.success;
+  const base = savedInputs?.success
+    ? savedInputs.data
+    : representativeBaseInputs(scores.audit.sizeBand, "GBP");
+
+  const cost = auditAdjustedCost(base, scores.dimensions, {
+    concentratedSegment: scores.concentratedSegment,
+  });
 
   const pdf = await renderAuditReportPdf({
     scores,
     benchmarks,
     cost,
     annotation,
+    costIsRepresentative,
   });
   const filename = `workplace-mind-audit-${scores.audit.id}.pdf`;
 

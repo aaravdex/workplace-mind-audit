@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { auditAdjustedCost } from "@/lib/costModel";
 import { representativeBaseInputs } from "@/lib/cost-defaults";
+import type { CalculatorInput } from "@/lib/calculator";
 import { CURRENCY_META } from "@/lib/constants";
 import { formatCurrency } from "@/lib/utils";
 import type { Currency, DimensionScores, SizeBand } from "@/types";
@@ -18,25 +19,55 @@ export function FinancialImpact({
   dimensions,
   sizeBand,
   concentratedSegment,
+  auditId,
+  savedInputs,
 }: {
   dimensions: DimensionScores;
   sizeBand: SizeBand | null;
   concentratedSegment: string | null;
+  /** When present (real dashboard), the owner can save these figures. */
+  auditId?: string;
+  /** The owner's previously-saved figures, if any. */
+  savedInputs?: CalculatorInput | null;
 }) {
-  const seed = representativeBaseInputs(sizeBand);
+  const seed = savedInputs ?? representativeBaseInputs(sizeBand);
   const [employees, setEmployees] = useState(seed.employees);
   const [avgSalary, setAvgSalary] = useState(seed.avgSalary);
-  const [currency, setCurrency] = useState<Currency>("GBP");
+  const [currency, setCurrency] = useState<Currency>(seed.currency);
+  const [saveState, setSaveState] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
 
-  const result = useMemo(() => {
-    const base = {
-      ...representativeBaseInputs(sizeBand, currency),
+  const baseInputs = useMemo(
+    () => ({
+      ...(savedInputs ?? representativeBaseInputs(sizeBand, currency)),
       employees,
       avgSalary,
       currency,
-    };
-    return auditAdjustedCost(base, dimensions, { concentratedSegment });
-  }, [sizeBand, employees, avgSalary, currency, dimensions, concentratedSegment]);
+    }),
+    [savedInputs, sizeBand, employees, avgSalary, currency],
+  );
+
+  const result = useMemo(
+    () => auditAdjustedCost(baseInputs, dimensions, { concentratedSegment }),
+    [baseInputs, dimensions, concentratedSegment],
+  );
+
+  async function saveFigures() {
+    if (!auditId) return;
+    setSaveState("saving");
+    try {
+      const res = await fetch(`/api/cost/${auditId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(baseInputs),
+      });
+      if (!res.ok) throw new Error();
+      setSaveState("saved");
+    } catch {
+      setSaveState("error");
+    }
+  }
 
   const money = (n: number) => formatCurrency(n, currency);
   const symbol = CURRENCY_META[currency].symbol;
@@ -118,6 +149,32 @@ export function FinancialImpact({
             </li>
           ))}
         </ul>
+      )}
+
+      {auditId && (
+        <div className="flex flex-wrap items-center gap-3 border-t border-brand-100 pt-4">
+          <button
+            type="button"
+            onClick={saveFigures}
+            disabled={saveState === "saving"}
+            className="rounded-md bg-brand-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-800 disabled:opacity-60"
+          >
+            {saveState === "saving" ? "Saving…" : "Save these figures for the report"}
+          </button>
+          {saveState === "saved" && (
+            <span className="text-xs text-emerald-700">
+              Saved — your PDF report now uses these figures.
+            </span>
+          )}
+          {saveState === "error" && (
+            <span className="text-xs text-red-600">Could not save. Try again.</span>
+          )}
+          {saveState === "idle" && (
+            <span className="text-xs text-brand-400">
+              Until you save real figures, the PDF is labelled sector-average.
+            </span>
+          )}
+        </div>
       )}
 
       <p className="text-xs text-brand-400">

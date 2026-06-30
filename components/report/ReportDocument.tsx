@@ -30,6 +30,9 @@ export interface ReportData {
   benchmarks: Record<Dimension, BenchmarkResult | null> | null;
   cost: AdjustedCostBreakdown | null;
   annotation: AuditAnnotation | null;
+  /** True when the cost figure uses sector-average defaults, not the owner's
+   * own figures — the report must say so rather than imply it is bespoke. */
+  costIsRepresentative?: boolean;
 }
 
 const C = {
@@ -156,7 +159,7 @@ const formatDate = (iso?: string) =>
   });
 
 export function ReportDocument({ data }: { data: ReportData }) {
-  const { scores, benchmarks, cost, annotation } = data;
+  const { scores, benchmarks, cost, annotation, costIsRepresentative } = data;
   const recs = recommendations(scores.dimensions);
   const plan = ninetyDayPlan(recs);
   const recByDimension = new Map(recs.map((r) => [r.dimension, r]));
@@ -471,6 +474,20 @@ export function ReportDocument({ data }: { data: ReportData }) {
       <Page style={styles.page}>
         <Text style={styles.eyebrow}>Financial impact</Text>
         <Text style={styles.h1}>From generic estimate to your figure</Text>
+        {costIsRepresentative && (
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: C.bg, borderColor: "#ECC8AC", marginTop: 10 },
+            ]}
+          >
+            <Text style={[styles.small, { color: C.accentText }]}>
+              These figures use sector-average assumptions for an organisation of
+              this size. Enter your company&rsquo;s own headcount, salary and
+              turnover in the dashboard for a precise, bespoke estimate.
+            </Text>
+          </View>
+        )}
         {cost ? (
           <View style={{ marginTop: 12 }}>
             <View style={styles.row}>

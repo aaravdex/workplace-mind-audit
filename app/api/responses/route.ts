@@ -1,16 +1,25 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { QUESTIONS } from "@/content/questions";
+import { hashIp, rateLimit, shortHash } from "@/lib/rate-limit";
 
 /**
  * POST: submit ONE anonymous survey response. No user_id, no PII — only the
  * answer payload, an optional (validated) segment, and a timestamp.
  *
- * Flow: validate token → resolve the audit (must be OPEN) → sanitise answers to
- * known question ids and the segment to the audit's controlled list → insert via
- * the service role (anonymous submit, no auth). The token is the only secret a
- * respondent needs, satisfying "anyone with the token can submit".
+ * Flow: rate-limit + per-browser duplicate guard → validate token → resolve the
+ * audit (must be OPEN) → sanitise answers to known question ids and the segment
+ * to the audit's controlled list → insert via the service role (anonymous
+ * submit, no auth).
+ *
+ * DUPLICATE GUARD (anonymity-preserving): on first submit we set a signed,
+ * httpOnly cookie scoped to a HASH of the audit's public token. A second submit
+ * from the same browser is blocked. Nothing identifying is written to the row.
+ * Residual limitation: clearing cookies / a different browser / incognito can
+ * bypass it; the coarse per-IP-hash rate limit (transient, never stored) is the
+ * backstop. See README → "Anonymity & abuse protection".
  */
 const LikertOrNull = z.union([z.number().int().min(1).max(5), z.null()]);
 
@@ -45,6 +54,26 @@ export async function POST(request: Request) {
   }
   const { token, segment, answers } = parsed.data;
 
+  const tokenHash = shortHash(token);
+  const cookieName = `wmar_${tokenHash}`;
+
+  // 1) Per-browser duplicate guard.
+  if (cookies().get(cookieName)) {
+    return NextResponse.json(
+      { error: "You have already submitted this survey from this browser." },
+      { status: 409 },
+    );
+  }
+
+  // 2) Coarse per-IP-hash rate limit (IP hashed transiently, never stored).
+  const limit = rateLimit(`resp:${tokenHash}:${hashIp(request)}`, 5, 60 * 60_000);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many submissions. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+    );
+  }
+
   const { data: audit } = await admin
     .from("audits")
     .select("id, status, segments")
@@ -70,8 +99,7 @@ export async function POST(request: Request) {
 
   // Only accept a segment from the audit's controlled list; otherwise anonymous.
   const allowed: string[] = audit.segments ?? [];
-  const cleanSegment =
-    segment && allowed.includes(segment) ? segment : null;
+  const cleanSegment = segment && allowed.includes(segment) ? segment : null;
 
   const { error } = await admin.from("responses").insert({
     audit_id: audit.id,
@@ -87,5 +115,14 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true }, { status: 201 });
+  // Mark this browser as having submitted THIS audit (hashed token only).
+  const response = NextResponse.json({ ok: true }, { status: 201 });
+  response.cookies.set(cookieName, "1", {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 60 * 60 * 24 * 180, // 180 days
+  });
+  return response;
 }

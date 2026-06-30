@@ -90,8 +90,32 @@ npm run dev          # http://localhost:3000
 | `npm start`         | Serve the production build                     |
 | `npm run lint`      | ESLint (next/core-web-vitals)                  |
 | `npm run typecheck` | `tsc --noEmit` (strict)                        |
-| `npm test`          | Run the Vitest suite once                      |
+| `npm test`          | Run the Vitest suite once (integration tests skip without keys) |
 | `npm run test:watch`| Vitest in watch mode                           |
+| `npm run setup:check` | Validate `.env.local` + Supabase connection; report which migrations to apply |
+| `npm run seed:demo` | Seed the Northwind sample (org + 40 responses + benchmark pool) into your live project |
+| `npm run test:integration` | Run the live RLS + lifecycle suite against your Supabase (needs `.env.local`) |
+
+---
+
+## Anonymity & abuse protection
+
+The `responses` table stores **no** `user_id`, name, email, or IP — anonymity is
+architectural. Abuse protection therefore lives entirely in the request layer,
+never on the data row:
+
+- **Duplicate-submission guard:** on first submit, `/api/responses` sets a signed,
+  `httpOnly` cookie scoped to a **hash** of the audit's public token. A second
+  submit from the same browser is blocked (409). Nothing identifying is written.
+- **Rate limiting:** `/api/responses`, `/api/calculator`, and `/api/leads` apply a
+  coarse per-request limit keyed on a **transient, salted IP hash** that is used
+  only as a key and immediately discarded (`lib/rate-limit.ts`).
+- **Residual limitation (documented, not hidden):** the cookie guard is
+  per-browser — clearing cookies, a different browser, or incognito can bypass it.
+  The rate-limit store is in-memory and per-instance (resets on deploy, not shared
+  across serverless instances). For production scale, back the limiter with
+  Redis/Upstash. These are deterrents, not hard guarantees; the anonymity of the
+  data is the guarantee.
 
 ---
 
@@ -106,8 +130,10 @@ values reach the browser. Secrets live in `.env.local` (git-ignored).
 | `NEXT_PUBLIC_SUPABASE_URL`        | 3     | Supabase project URL                      |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY`   | 3     | Public anon key (RLS-gated)               |
 | `SUPABASE_SERVICE_ROLE_KEY`       | 3     | Server-only; bypasses RLS                 |
-| `RESEND_API_KEY`                  | 2     | Transactional email (empty → console stub)|
+| `RESEND_API_KEY`                  | 2     | Transactional email (empty → no email sent; UI never claims it was) |
 | `EMAIL_FROM`                      | 2     | From address for emails                   |
+| `CONTACT_EMAIL` / `BOOKING_URL`   | —     | Contact page; honest "coming soon" until set |
+| `RATE_LIMIT_SALT`                 | —     | Salt for transient IP hashing (rate-limit keys only) |
 | `NEXT_PUBLIC_ENABLE_PUBLIC_PRICING` | 7   | Show public service prices                |
 | `ENABLE_PAYMENTS`                 | 8     | Toggle the Stripe subsystem               |
 | `STRIPE_SECRET_KEY` / `…WEBHOOK_SECRET` / `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | 8 | Stripe |

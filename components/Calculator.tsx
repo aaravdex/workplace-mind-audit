@@ -374,6 +374,8 @@ function LeadCapture({ input }: { input: CalculatorInput }) {
     companyName: "",
   });
 
+  const [emailed, setEmailed] = useState(false);
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setStatus("submitting");
@@ -384,6 +386,11 @@ function LeadCapture({ input }: { input: CalculatorInput }) {
         body: JSON.stringify({ ...form, calculatorPayload: input }),
       });
       if (!res.ok) throw new Error("Request failed");
+      const body = (await res.json().catch(() => null)) as {
+        emailed?: boolean;
+      } | null;
+      // Only record an email as sent if the server actually delivered it.
+      setEmailed(Boolean(body?.emailed));
       setStatus("success");
     } catch {
       setStatus("error");
@@ -412,15 +419,17 @@ function LeadCapture({ input }: { input: CalculatorInput }) {
     return (
       <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
         <p>
-          Thanks — we&rsquo;ve emailed your report. The on-screen estimate above
-          is always free.
+          Your report is ready — download it below.
+          {emailed
+            ? " We've also emailed a copy to you."
+            : " The on-screen estimate above is always free."}
         </p>
         <button
           type="button"
           onClick={downloadPdf}
           className="mt-3 inline-flex items-center gap-2 rounded-md bg-brand-900 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-brand-800"
         >
-          Download the PDF now ↓
+          Download your report (PDF) ↓
         </button>
       </div>
     );

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { LeadInputSchema } from "@/lib/leads";
 import { computeBurnoutCost } from "@/lib/calculator";
-import { sendEmail } from "@/lib/email";
+import { sendEmail, isEmailConfigured } from "@/lib/email";
 import { renderCalculatorReportEmail } from "@/lib/email-templates";
 import { renderBurnoutCostReportPdf } from "@/components/report/BurnoutCostReport";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { hashIp, rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,14 @@ export const runtime = "nodejs";
  * separate from anonymous survey responses.
  */
 export async function POST(request: Request) {
+  const limit = rateLimit(`leads:${hashIp(request)}`, 10, 60 * 60_000);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -60,5 +69,9 @@ export async function POST(request: Request) {
     attachments: [{ filename: "burnout-cost-report.pdf", content: pdf }],
   });
 
-  return NextResponse.json({ ok: true, emailed: email.delivered });
+  return NextResponse.json({
+    ok: true,
+    emailConfigured: isEmailConfigured(),
+    emailed: email.delivered,
+  });
 }
