@@ -16,7 +16,7 @@ import {
   BUSINESS_IMPACT,
   interpretationFor,
   leadershipInterpretation,
-  thirtyDayPlan,
+  ninetyDayPlan,
 } from "@/lib/report-content";
 import { SERVICE_TIERS } from "@/content/services";
 import type { BenchmarkResult } from "@/lib/benchmark";
@@ -158,7 +158,7 @@ const formatDate = (iso?: string) =>
 export function ReportDocument({ data }: { data: ReportData }) {
   const { scores, benchmarks, cost, annotation } = data;
   const recs = recommendations(scores.dimensions);
-  const plan = thirtyDayPlan(recs);
+  const plan = ninetyDayPlan(recs);
   const recByDimension = new Map(recs.map((r) => [r.dimension, r]));
   const overallBand = scores.band;
   const money = (n: number) => formatCurrency(n, cost?.currency ?? "GBP");
@@ -540,7 +540,7 @@ export function ReportDocument({ data }: { data: ReportData }) {
       {/* ── 30-day plan + services ────────────────────────────── */}
       <Page style={styles.page}>
         <Text style={styles.eyebrow}>What to do next</Text>
-        <Text style={styles.h1}>30-day action plan</Text>
+        <Text style={styles.h1}>90-day intervention plan</Text>
         <View style={{ marginTop: 10, marginBottom: 16 }}>
           {plan.map((w) => (
             <View key={w.window} style={styles.card} wrap={false}>

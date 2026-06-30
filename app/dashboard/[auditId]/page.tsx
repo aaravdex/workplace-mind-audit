@@ -7,6 +7,8 @@ import { getAuditBenchmarks } from "@/lib/benchmark-service";
 import { getAuditAnnotations } from "@/lib/annotations-service";
 import { isConsultant } from "@/lib/auth";
 import { recommendations } from "@/lib/recommendations";
+import { ninetyDayPlan } from "@/lib/report-content";
+import { InterventionPlan } from "@/components/dashboard/InterventionPlan";
 import { Heatmap } from "@/components/dashboard/Heatmap";
 import { DimensionRadar } from "@/components/dashboard/DimensionRadar";
 import { BenchmarkView } from "@/components/dashboard/BenchmarkView";
@@ -202,6 +204,16 @@ export default async function AuditDashboardPage({
             <Interventions
               dimensions={scores.dimensions}
               notes={annotation?.dimensionNotes ?? {}}
+            />
+          </Section>
+
+          {/* 7. 90-day intervention plan */}
+          <Section
+            title="90-day intervention plan"
+            subtitle="A phased programme: stabilise, rebuild, then embed and re-measure."
+          >
+            <InterventionPlan
+              windows={ninetyDayPlan(recommendations(scores.dimensions))}
             />
           </Section>
         </>

@@ -7,6 +7,8 @@ import { DimensionRadar } from "@/components/dashboard/DimensionRadar";
 import { BenchmarkView } from "@/components/dashboard/BenchmarkView";
 import { FinancialImpact } from "@/components/dashboard/FinancialImpact";
 import { recommendations } from "@/lib/recommendations";
+import { ninetyDayPlan } from "@/lib/report-content";
+import { InterventionPlan } from "@/components/dashboard/InterventionPlan";
 import { combinedInsights, riskBand } from "@/lib/scoring";
 import { BAND_META, DIMENSIONS, DIMENSION_META, MIN_RESPONSES_PER_SEGMENT } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -232,6 +234,14 @@ export default function SampleReportPage() {
                 </div>
               ))}
             </div>
+          </Section>
+
+          {/* 7. 90-day intervention plan */}
+          <Section
+            title="7 · 90-day intervention plan"
+            subtitle="A phased programme: stabilise, rebuild, then embed and re-measure."
+          >
+            <InterventionPlan windows={ninetyDayPlan(recs)} />
           </Section>
         </div>
 

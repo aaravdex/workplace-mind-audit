@@ -88,3 +88,56 @@ export function thirtyDayPlan(recs: Recommendation[]): PlanWindow[] {
     },
   ];
 }
+
+/**
+ * A phased 90-day intervention plan (Stabilise → Rebuild → Embed), conditioned
+ * on the dimensions in Risk/Critical. This is the structure behind the
+ * "90-Day Wellbeing Intervention" service tier.
+ */
+export function ninetyDayPlan(recs: Recommendation[]): PlanWindow[] {
+  if (recs.length === 0) {
+    return [
+      {
+        window: "Days 1–90 · Sustain",
+        items: [
+          "No dimension is in the Risk band — protect what is working.",
+          "Keep manager 1:1s and recognition rituals consistent.",
+          "Re-run the 5C audit next quarter to catch drift early.",
+        ],
+      },
+    ];
+  }
+
+  const primary = recs[0];
+  const secondary = recs.slice(1, 3);
+  const primaryLabel = DIMENSION_META[primary.dimension].label;
+
+  return [
+    {
+      window: "Days 1–30 · Stabilise",
+      items: [
+        "Share the aggregate findings openly and name an accountable owner per priority area.",
+        `Take immediate pressure off the most acute area — ${primaryLabel}.`,
+        ...primary.actions.slice(0, 2),
+      ],
+    },
+    {
+      window: "Days 31–60 · Rebuild",
+      items: [
+        "Equip managers: targeted coaching on the behaviours behind the weakest dimensions.",
+        ...(secondary.length > 0
+          ? secondary.flatMap((r) => r.actions.slice(0, 1))
+          : primary.actions.slice(2, 3)),
+        "Run fortnightly working sessions with the owners to remove blockers.",
+      ],
+    },
+    {
+      window: "Days 61–90 · Embed & re-measure",
+      items: [
+        "Turn the fixes into standing norms and rituals, not one-off events.",
+        "Re-run the 5C audit and compare against this baseline to prove movement.",
+        "Report the delta — score change and the modelled cost avoided — to leadership.",
+      ],
+    },
+  ];
+}
