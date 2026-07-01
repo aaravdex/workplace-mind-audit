@@ -10,6 +10,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      // `server-only` is a no-op guard in the real Next runtime; stub it so
+      // server modules (lib/scores-service.ts, etc.) can be imported in tests.
+      "server-only": path.resolve(__dirname, "tests/empty-module.ts"),
     },
   },
   // Use the automatic JSX runtime so tests can render @react-pdf components

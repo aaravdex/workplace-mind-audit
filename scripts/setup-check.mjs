@@ -52,16 +52,21 @@ async function main() {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
-  // Connectivity + table presence.
+  // Connectivity + table presence. A real row-returning select is used (NOT a
+  // head/count probe, which can mask a missing table as a non-error).
   let connected = false;
   const present = [];
   const absent = [];
+  const isMissing = (e) =>
+    e.code === "42P01" ||
+    e.code === "PGRST205" ||
+    /does not exist|schema cache/i.test(e.message ?? "");
   for (const t of TABLES) {
-    const { error } = await admin.from(t).select("*", { count: "exact", head: true });
+    const { error } = await admin.from(t).select("id").limit(1);
     if (!error) {
       connected = true;
       present.push(t);
-    } else if (error.code === "42P01" || /does not exist/i.test(error.message)) {
+    } else if (isMissing(error)) {
       connected = true; // we reached Postgres; the table just isn't there yet
       absent.push(t);
     } else {
