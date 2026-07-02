@@ -9,6 +9,7 @@ import { isConsultant } from "@/lib/auth";
 import { recommendations } from "@/lib/recommendations";
 import { ninetyDayPlan } from "@/lib/report-content";
 import { InterventionPlan } from "@/components/dashboard/InterventionPlan";
+import { AuditStatusControl } from "@/components/dashboard/AuditStatusControl";
 import { Heatmap } from "@/components/dashboard/Heatmap";
 import { DimensionRadar } from "@/components/dashboard/DimensionRadar";
 import { BenchmarkView } from "@/components/dashboard/BenchmarkView";
@@ -100,6 +101,10 @@ export default async function AuditDashboardPage({
               {annotation ? "Edit interpretation" : "Add interpretation"}
             </a>
           )}
+          <AuditStatusControl
+            auditId={scores.audit.id}
+            status={scores.audit.status}
+          />
         </div>
       </header>
 
