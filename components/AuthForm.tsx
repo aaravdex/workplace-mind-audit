@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -14,6 +14,12 @@ export function AuthForm() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Only becomes true after the component mounts on the client (i.e. once React
+  // has hydrated). Until then the submit button stays disabled, so an early
+  // click on a cold page can't fall through to a native form submit that would
+  // just reload /login without ever calling Supabase.
+  const [ready, setReady] = useState(false);
+  useEffect(() => setReady(true), []);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -93,7 +99,7 @@ export function AuthForm() {
 
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !ready}
         className="h-10 w-full rounded-md bg-accent-500 text-sm font-medium text-white transition-colors hover:bg-accent-600 disabled:opacity-60"
       >
         {loading
