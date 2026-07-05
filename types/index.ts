@@ -146,3 +146,61 @@ export interface Audit {
   closed_at: string | null;
   created_at: string;
 }
+
+// ── Factor ontology (Phase 1A) ────────────────────────────────────────────────
+
+/** How a factor relates to wellbeing risk. Outcomes are RESULTS, never causes. */
+export type FactorCategory =
+  | "hazard"
+  | "resource"
+  | "outcome"
+  | "context"
+  | "readiness";
+
+/**
+ * A factor nests under a 5C dimension. "outcome" is reserved for future
+ * standalone outcome factors; every Core factor nests under a real C, so the
+ * 5C dimension scoring and benchmarks are never disturbed.
+ */
+export type FiveCOrOutcome = Dimension | "outcome";
+
+/**
+ * Semantic polarity of the raw construct, for interpretation phrasing only —
+ * NOT used in numeric scoring. Factor scores are always 0–100 with 100 =
+ * healthiest (identical to dimension scores), regardless of this field.
+ */
+export type ScoringDirection = "positive" | "negative";
+
+/**
+ * Lowercase risk levels used across the new analysis engines. "high" is the
+ * platform's "Risk" band under a new name; kept distinct so the deterministic
+ * `RiskBand` type used by scoring/benchmark is never touched.
+ */
+export type FactorRiskLevel = "healthy" | "watch" | "high" | "critical";
+
+export interface FactorRiskThresholds {
+  healthy: { min: number; max: number };
+  watch: { min: number; max: number };
+  high: { min: number; max: number };
+  critical: { min: number; max: number };
+}
+
+/**
+ * A subfactor beneath the 5C model. `questionIds` are NUMBERS (matching
+ * `Question.id` and the `answers` keying) — a deliberate deviation from the
+ * abstract spec's string ids, for type-safe compatibility with existing data.
+ * `sourceReferences` name public frameworks as design inspiration only, never
+ * as validation citations or statistics for these specific items.
+ */
+export interface Factor {
+  id: string;
+  name: string;
+  category: FactorCategory;
+  fiveC: FiveCOrOutcome;
+  description: string;
+  questionIds: number[];
+  scoringDirection: ScoringDirection;
+  minimumResponses: number;
+  riskThresholds: FactorRiskThresholds;
+  sourceReferences: string[];
+}
