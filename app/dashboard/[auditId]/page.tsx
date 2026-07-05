@@ -83,6 +83,12 @@ export default async function AuditDashboardPage({
           <span className="break-all text-brand-600">{surveyUrl}</span>
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
+          <a
+            href={`/dashboard/${scores.audit.id}/context`}
+            className="inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium text-brand-700 ring-1 ring-inset ring-brand-200 hover:bg-brand-50"
+          >
+            Organisation context
+          </a>
           {scores.sufficient && (
             <a
               href={`/api/report/${scores.audit.id}`}
