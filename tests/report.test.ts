@@ -51,6 +51,7 @@ const scores: AuditScores = {
   reportingThreshold: 5,
   findings: [],
   patterns: [],
+  prioritisation: { items: [], safeguardingCount: 0, summary: "" },
 };
 
 describe("PDF report", () => {

@@ -23,6 +23,7 @@ import { computeDataQuality, type DataQuality } from "@/lib/dataQuality";
 import { buildFindings, type Finding } from "@/lib/interpretation";
 import { evaluatePatterns, type PatternFinding } from "@/lib/patterns";
 import { factorScores } from "@/lib/factors";
+import { prioritise, type Prioritisation } from "@/lib/priority";
 import { contextSignals, ContextSchema } from "@/lib/context";
 
 export interface RankedDimension {
@@ -63,6 +64,8 @@ export interface AuditScores {
   findings: Finding[];
   /** Cross-factor combined-risk patterns that fired (Phase 3). */
   patterns: PatternFinding[];
+  /** Deterministic risk prioritisation + safeguarding routing (Phase 4). */
+  prioritisation: Prioritisation;
 }
 
 const emptyDimensions = (): DimensionScores =>
@@ -149,6 +152,7 @@ export async function buildAuditScores(
       reportingThreshold: dataQuality.reportingThreshold,
       findings: [],
       patterns: [],
+      prioritisation: { items: [], safeguardingCount: 0, summary: "" },
     };
   }
 
@@ -181,6 +185,7 @@ export async function buildAuditScores(
   const signals = contextSignals(
     parsedContext?.success ? parsedContext.data : null,
   );
+  const fScores = factorScores(responses);
   const findings = buildFindings({
     responses,
     dataQuality,
@@ -189,12 +194,21 @@ export async function buildAuditScores(
     hasCostFigures: (audit.cost_inputs ?? null) !== null,
   });
   const patterns = evaluatePatterns({
-    factorScores: factorScores(responses),
+    factorScores: fScores,
     dimensionScores: dimensions,
     contextSignals: signals,
     dataQuality,
     segments,
   });
+  const prioritisation = prioritise({
+    findings,
+    factorScores: fScores,
+    contextSignals: signals,
+  });
+  const priorityById = new Map(
+    prioritisation.items.map((i) => [i.refId, i.priorityScore]),
+  );
+  for (const f of findings) f.priorityScore = priorityById.get(f.findingId) ?? 0;
 
   return {
     audit: auditMeta,
@@ -211,5 +225,6 @@ export async function buildAuditScores(
     reportingThreshold: dataQuality.reportingThreshold,
     findings,
     patterns,
+    prioritisation,
   };
 }

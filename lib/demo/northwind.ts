@@ -147,6 +147,7 @@ export function getNorthwindDemo(): NorthwindDemo {
     reportingThreshold: dataQuality.reportingThreshold,
     findings: [],
     patterns: [],
+    prioritisation: { items: [], safeguardingCount: 0, summary: "" },
   };
 
   // ── Real benchmark engine (14-org SaaS / 50–199 pool) ──

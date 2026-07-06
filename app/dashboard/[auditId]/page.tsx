@@ -15,6 +15,7 @@ import { DimensionRadar } from "@/components/dashboard/DimensionRadar";
 import { BenchmarkView } from "@/components/dashboard/BenchmarkView";
 import { FinancialImpact } from "@/components/dashboard/FinancialImpact";
 import { FindingsSection } from "@/components/dashboard/FindingsSection";
+import { PrioritisedRisks } from "@/components/dashboard/PrioritisedRisks";
 import { CalculatorInputSchema } from "@/lib/calculator";
 import {
   BAND_META,
@@ -196,6 +197,14 @@ export default async function AuditDashboardPage({
             subtitle="What the scores mean, what is driving them, and what to validate — separating observation from hypothesis."
           >
             <FindingsSection findings={scores.findings} patterns={scores.patterns} />
+          </Section>
+
+          {/* Prioritised risks (Phase 4) */}
+          <Section
+            title="Prioritised risks"
+            subtitle="What to tackle first — and why not everything at once."
+          >
+            <PrioritisedRisks prioritisation={scores.prioritisation} />
           </Section>
 
           {/* 3. Benchmark — vs sector/size peers */}
