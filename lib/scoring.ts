@@ -140,7 +140,12 @@ export function combinedInsights(scores: DimensionScores): Insight[] {
  */
 export function segmentScores(
   responses: SurveyResponse[],
+  reportingThreshold: number = MIN_RESPONSES_PER_SEGMENT,
 ): SegmentScoresResult {
+  // A segment is reported only at/above the audit's reporting threshold, which
+  // can NEVER drop below the platform floor (MIN_RESPONSES_PER_SEGMENT). Callers
+  // that pass nothing keep the historical behaviour (floor = 5).
+  const threshold = Math.max(MIN_RESPONSES_PER_SEGMENT, reportingThreshold);
   const groups = new Map<string | null, SurveyResponse[]>();
   for (const response of responses) {
     const key = response.segment ?? null;
@@ -153,7 +158,7 @@ export function segmentScores(
   const suppressed: SuppressedSegment[] = [];
 
   for (const [segment, group] of groups) {
-    if (group.length >= MIN_RESPONSES_PER_SEGMENT) {
+    if (group.length >= threshold) {
       reported.push({ segment, ...summarise(group) });
     } else {
       suppressed.push({ segment, responseCount: group.length });
