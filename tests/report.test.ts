@@ -49,6 +49,8 @@ const scores: AuditScores = {
   concentratedSegment: "Operations",
   dataQuality: computeDataQuality([], { reportingThreshold: 5 }),
   reportingThreshold: 5,
+  findings: [],
+  patterns: [],
 };
 
 describe("PDF report", () => {

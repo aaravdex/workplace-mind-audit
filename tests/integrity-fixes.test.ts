@@ -108,6 +108,8 @@ describe("A3 — cost figure provenance is labelled", () => {
     concentratedSegment: "Engineering",
     dataQuality: computeDataQuality([], { reportingThreshold: 5 }),
     reportingThreshold: 5,
+    findings: [],
+    patterns: [],
   };
   const cost = auditAdjustedCost(representativeBaseInputs("50-199", "GBP"), dims, {});
 

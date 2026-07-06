@@ -14,6 +14,7 @@ import { Heatmap } from "@/components/dashboard/Heatmap";
 import { DimensionRadar } from "@/components/dashboard/DimensionRadar";
 import { BenchmarkView } from "@/components/dashboard/BenchmarkView";
 import { FinancialImpact } from "@/components/dashboard/FinancialImpact";
+import { FindingsSection } from "@/components/dashboard/FindingsSection";
 import { CalculatorInputSchema } from "@/lib/calculator";
 import {
   BAND_META,
@@ -187,6 +188,14 @@ export default async function AuditDashboardPage({
             <div className="mt-6">
               <DimensionRadar dimensions={scores.dimensions} />
             </div>
+          </Section>
+
+          {/* Findings & interpretation (Phase 3) */}
+          <Section
+            title="Findings & interpretation"
+            subtitle="What the scores mean, what is driving them, and what to validate — separating observation from hypothesis."
+          >
+            <FindingsSection findings={scores.findings} patterns={scores.patterns} />
           </Section>
 
           {/* 3. Benchmark — vs sector/size peers */}

@@ -20,6 +20,10 @@ import {
   segmentScores,
 } from "@/lib/scoring";
 import { computeDataQuality, type DataQuality } from "@/lib/dataQuality";
+import { buildFindings, type Finding } from "@/lib/interpretation";
+import { evaluatePatterns, type PatternFinding } from "@/lib/patterns";
+import { factorScores } from "@/lib/factors";
+import { contextSignals, ContextSchema } from "@/lib/context";
 
 export interface RankedDimension {
   dimension: Dimension;
@@ -55,6 +59,10 @@ export interface AuditScores {
   dataQuality: DataQuality;
   /** Effective segment reporting threshold (never below the platform floor). */
   reportingThreshold: number;
+  /** Per-dimension five-layer interpretation (Phase 3). */
+  findings: Finding[];
+  /** Cross-factor combined-risk patterns that fired (Phase 3). */
+  patterns: PatternFinding[];
 }
 
 const emptyDimensions = (): DimensionScores =>
@@ -80,7 +88,7 @@ export async function buildAuditScores(
   const { data: audit } = await supabase
     .from("audits")
     .select(
-      "id, title, status, public_token, created_at, segments, invited_count, reporting_threshold, organisations(name, sector, size_band)",
+      "id, title, status, public_token, created_at, segments, invited_count, reporting_threshold, context, cost_inputs, organisations(name, sector, size_band)",
     )
     .eq("id", auditId)
     .maybeSingle();
@@ -139,6 +147,8 @@ export async function buildAuditScores(
       concentratedSegment: null,
       dataQuality,
       reportingThreshold: dataQuality.reportingThreshold,
+      findings: [],
+      patterns: [],
     };
   }
 
@@ -165,6 +175,27 @@ export async function buildAuditScores(
       )
       .sort((a, b) => a.overall - b.overall)[0]?.segment ?? null;
 
+  const parsedContext = audit.context
+    ? ContextSchema.safeParse(audit.context)
+    : null;
+  const signals = contextSignals(
+    parsedContext?.success ? parsedContext.data : null,
+  );
+  const findings = buildFindings({
+    responses,
+    dataQuality,
+    contextSignals: signals,
+    reportingThreshold,
+    hasCostFigures: (audit.cost_inputs ?? null) !== null,
+  });
+  const patterns = evaluatePatterns({
+    factorScores: factorScores(responses),
+    dimensionScores: dimensions,
+    contextSignals: signals,
+    dataQuality,
+    segments,
+  });
+
   return {
     audit: auditMeta,
     sufficient: true,
@@ -178,5 +209,7 @@ export async function buildAuditScores(
     concentratedSegment,
     dataQuality,
     reportingThreshold: dataQuality.reportingThreshold,
+    findings,
+    patterns,
   };
 }
