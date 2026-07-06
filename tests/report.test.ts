@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { renderAuditReportPdf } from "@/components/report/ReportDocument";
 import { auditAdjustedCost } from "@/lib/costModel";
 import { representativeBaseInputs } from "@/lib/cost-defaults";
+import { computeDataQuality } from "@/lib/dataQuality";
 import type { AuditScores } from "@/lib/scores-service";
 import type { DimensionScores } from "@/types";
 
@@ -46,6 +47,8 @@ const scores: AuditScores = {
   ],
   segments: { reported: [], suppressed: [] },
   concentratedSegment: "Operations",
+  dataQuality: computeDataQuality([], { reportingThreshold: 5 }),
+  reportingThreshold: 5,
 };
 
 describe("PDF report", () => {

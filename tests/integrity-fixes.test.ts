@@ -6,6 +6,7 @@ import { BenchmarkView } from "@/components/dashboard/BenchmarkView";
 import { renderAuditReportPdf } from "@/components/report/ReportDocument";
 import { auditAdjustedCost } from "@/lib/costModel";
 import { representativeBaseInputs } from "@/lib/cost-defaults";
+import { computeDataQuality } from "@/lib/dataQuality";
 import type { AuditScores } from "@/lib/scores-service";
 import type { Dimension, DimensionScores } from "@/types";
 
@@ -105,6 +106,8 @@ describe("A3 — cost figure provenance is labelled", () => {
     insights: [],
     segments: { reported: [], suppressed: [] },
     concentratedSegment: "Engineering",
+    dataQuality: computeDataQuality([], { reportingThreshold: 5 }),
+    reportingThreshold: 5,
   };
   const cost = auditAdjustedCost(representativeBaseInputs("50-199", "GBP"), dims, {});
 

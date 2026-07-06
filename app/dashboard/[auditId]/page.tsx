@@ -20,7 +20,9 @@ import {
   DIMENSION_META,
   MIN_RESPONSES_PER_SEGMENT,
 } from "@/lib/constants";
+import { DataQualitySettings } from "@/components/dashboard/DataQualitySettings";
 import { cn } from "@/lib/utils";
+import type { ConfidenceLevel, DataQuality } from "@/lib/dataQuality";
 import type { DimensionScores, RiskBand, SegmentScoresResult } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -173,6 +175,9 @@ export default async function AuditDashboardPage({
             <RecommendedPriority dimensions={scores.dimensions} />
           </Section>
 
+          {/* Data quality & confidence */}
+          <DataQualityCard dq={scores.dataQuality} auditId={scores.audit.id} />
+
           {/* 2. 5C Risk Heatmap */}
           <Section
             title="5C risk heatmap"
@@ -202,9 +207,12 @@ export default async function AuditDashboardPage({
           {/* 3. Department Comparison */}
           <Section
             title="Department comparison"
-            subtitle={`Only segments with at least ${MIN_RESPONSES_PER_SEGMENT} responses are shown — anonymity by design.`}
+            subtitle={`Only segments with at least ${scores.reportingThreshold} responses are shown — anonymity by design.`}
           >
-            <DepartmentTable segments={scores.segments} />
+            <DepartmentTable
+              segments={scores.segments}
+              threshold={scores.reportingThreshold}
+            />
           </Section>
 
           {/* 4. Financial Impact — THE LOOP */}
@@ -266,6 +274,92 @@ function Section({
       {subtitle && <p className="mt-1 text-sm text-brand-500">{subtitle}</p>}
       <div className="mt-5">{children}</div>
     </section>
+  );
+}
+
+const CONFIDENCE_META: Record<ConfidenceLevel, { label: string; cls: string }> =
+  {
+    high: {
+      label: "High confidence",
+      cls: "bg-emerald-50 text-emerald-700 ring-emerald-200",
+    },
+    moderate: {
+      label: "Moderate confidence",
+      cls: "bg-sky-50 text-sky-700 ring-sky-200",
+    },
+    exploratory: {
+      label: "Exploratory",
+      cls: "bg-amber-50 text-amber-800 ring-amber-200",
+    },
+    insufficient: {
+      label: "Insufficient",
+      cls: "bg-red-50 text-red-700 ring-red-200",
+    },
+  };
+
+function DataQualityCard({
+  dq,
+  auditId,
+}: {
+  dq: DataQuality;
+  auditId: string;
+}) {
+  const topSkipped = [...dq.itemMissingness]
+    .filter((m) => m.missingPct > 0)
+    .sort((a, b) => b.missingPct - a.missingPct)
+    .slice(0, 3);
+  const conf = CONFIDENCE_META[dq.confidence];
+  return (
+    <Section
+      title="Data quality & confidence"
+      subtitle="How much weight the evidence can bear."
+    >
+      <div className="flex flex-wrap items-center gap-3">
+        <span
+          className={cn(
+            "inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset",
+            conf.cls,
+          )}
+        >
+          {conf.label}
+        </span>
+        <span className="text-sm text-brand-500">
+          {dq.confidenceReasons.join(" ")}
+        </span>
+      </div>
+      <dl className="mt-5 grid gap-4 sm:grid-cols-3">
+        <Stat label="Response rate" value={dq.responseRateLabel} />
+        <Stat label="Responses" value={String(dq.completed)} />
+        <Stat
+          label="Low-quality responses"
+          value={`${dq.integrity.flaggedResponses} of ${dq.completed}`}
+        />
+      </dl>
+      {topSkipped.length > 0 && (
+        <p className="mt-4 text-xs text-brand-500">
+          Most-skipped questions:{" "}
+          {topSkipped
+            .map((m) => `Q${m.questionId} (${m.missingPct}%)`)
+            .join(", ")}
+        </p>
+      )}
+      <DataQualitySettings
+        auditId={auditId}
+        invitedCount={dq.invited}
+        reportingThreshold={dq.reportingThreshold}
+      />
+    </Section>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-brand-100 bg-brand-50 p-3">
+      <dt className="text-xs font-medium uppercase tracking-wider text-brand-400">
+        {label}
+      </dt>
+      <dd className="mt-1 text-sm font-semibold text-brand-900">{value}</dd>
+    </div>
   );
 }
 
@@ -342,7 +436,13 @@ function RecommendedPriority({
   );
 }
 
-function DepartmentTable({ segments }: { segments: SegmentScoresResult }) {
+function DepartmentTable({
+  segments,
+  threshold,
+}: {
+  segments: SegmentScoresResult;
+  threshold: number;
+}) {
   const { reported, suppressed } = segments;
 
   return (
@@ -390,8 +490,7 @@ function DepartmentTable({ segments }: { segments: SegmentScoresResult }) {
       {suppressed.length > 0 && (
         <p className="mt-4 text-xs text-brand-400">
           {suppressed.length} segment{suppressed.length === 1 ? "" : "s"} hidden
-          to protect anonymity (fewer than {MIN_RESPONSES_PER_SEGMENT}{" "}
-          responses).
+          to protect anonymity (fewer than {threshold} responses).
         </p>
       )}
     </div>

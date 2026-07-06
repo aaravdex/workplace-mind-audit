@@ -11,6 +11,7 @@ import {
   riskBand,
   segmentScores,
 } from "@/lib/scoring";
+import { computeDataQuality } from "@/lib/dataQuality";
 import { benchmarkResult } from "@/lib/benchmark";
 import { auditAdjustedCost } from "@/lib/costModel";
 import { representativeBaseInputs } from "@/lib/cost-defaults";
@@ -119,6 +120,7 @@ export function getNorthwindDemo(): NorthwindDemo {
       .filter((s) => s.segment && s.overall !== null)
       .sort((a, b) => (a.overall as number) - (b.overall as number))[0]
       ?.segment ?? null;
+  const dataQuality = computeDataQuality(responses, { reportingThreshold: 5 });
 
   const scores: AuditScores = {
     audit: {
@@ -141,6 +143,8 @@ export function getNorthwindDemo(): NorthwindDemo {
     insights: combinedInsights(dimensions),
     segments,
     concentratedSegment,
+    dataQuality,
+    reportingThreshold: dataQuality.reportingThreshold,
   };
 
   // ── Real benchmark engine (14-org SaaS / 50–199 pool) ──

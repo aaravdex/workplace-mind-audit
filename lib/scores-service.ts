@@ -19,6 +19,7 @@ import {
   riskBand,
   segmentScores,
 } from "@/lib/scoring";
+import { computeDataQuality, type DataQuality } from "@/lib/dataQuality";
 
 export interface RankedDimension {
   dimension: Dimension;
@@ -50,6 +51,10 @@ export interface AuditScores {
   segments: SegmentScoresResult;
   /** The named reported segment with the lowest overall score, if any. */
   concentratedSegment: string | null;
+  /** Data-quality & confidence picture for this audit (Phase 2). */
+  dataQuality: DataQuality;
+  /** Effective segment reporting threshold (never below the platform floor). */
+  reportingThreshold: number;
 }
 
 const emptyDimensions = (): DimensionScores =>
@@ -75,7 +80,7 @@ export async function buildAuditScores(
   const { data: audit } = await supabase
     .from("audits")
     .select(
-      "id, title, status, public_token, created_at, segments, organisations(name, sector, size_band)",
+      "id, title, status, public_token, created_at, segments, invited_count, reporting_threshold, organisations(name, sector, size_band)",
     )
     .eq("id", auditId)
     .maybeSingle();
@@ -112,6 +117,14 @@ export async function buildAuditScores(
 
   const responseCount = responses.length;
 
+  const invitedCount = (audit.invited_count as number | null) ?? null;
+  const reportingThreshold =
+    (audit.reporting_threshold as number | null) ?? MIN_RESPONSES_PER_SEGMENT;
+  const dataQuality = computeDataQuality(responses, {
+    invitedCount,
+    reportingThreshold,
+  });
+
   if (responseCount < MIN_RESPONSES_PER_SEGMENT) {
     return {
       audit: auditMeta,
@@ -124,6 +137,8 @@ export async function buildAuditScores(
       insights: [],
       segments: { reported: [], suppressed: [] },
       concentratedSegment: null,
+      dataQuality,
+      reportingThreshold: dataQuality.reportingThreshold,
     };
   }
 
@@ -138,7 +153,7 @@ export async function buildAuditScores(
     .map((x) => ({ ...x, band: riskBand(x.score) }))
     .sort((a, b) => b.score - a.score);
 
-  const segments = segmentScores(responses);
+  const segments = segmentScores(responses, reportingThreshold);
 
   // The named, reportable segment carrying the most risk (lowest overall) —
   // used by the cost loop to name where risk concentrates.
@@ -161,5 +176,7 @@ export async function buildAuditScores(
     insights: combinedInsights(dimensions),
     segments,
     concentratedSegment,
+    dataQuality,
+    reportingThreshold: dataQuality.reportingThreshold,
   };
 }

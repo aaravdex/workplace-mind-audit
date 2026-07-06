@@ -79,6 +79,9 @@ export async function POST(request: Request) {
       segments: input.segments,
       status: "open",
       opened_at: new Date().toISOString(),
+      // New audits default to the recommended segment reporting threshold of 10;
+      // existing audits keep 5 (set by migration 0006). Floor of 5 always applies.
+      reporting_threshold: 10,
     })
     .select("id, title, status, public_token")
     .single();
