@@ -16,6 +16,7 @@ import { BenchmarkView } from "@/components/dashboard/BenchmarkView";
 import { FinancialImpact } from "@/components/dashboard/FinancialImpact";
 import { FindingsSection } from "@/components/dashboard/FindingsSection";
 import { PrioritisedRisks } from "@/components/dashboard/PrioritisedRisks";
+import { InterventionPlanSection } from "@/components/dashboard/InterventionPlanSection";
 import { CalculatorInputSchema } from "@/lib/calculator";
 import {
   BAND_META,
@@ -205,6 +206,14 @@ export default async function AuditDashboardPage({
             subtitle="What to tackle first — and why not everything at once."
           >
             <PrioritisedRisks prioritisation={scores.prioritisation} />
+          </Section>
+
+          {/* Intervention plan (Phase 5) */}
+          <Section
+            title="Intervention plan"
+            subtitle="Primary-first interventions, full playbooks, and a phased 30-60-90 roadmap."
+          >
+            <InterventionPlanSection plan={scores.interventionPlan} />
           </Section>
 
           {/* 3. Benchmark — vs sector/size peers */}

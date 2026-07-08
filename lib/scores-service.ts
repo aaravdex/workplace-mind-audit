@@ -24,6 +24,7 @@ import { buildFindings, type Finding } from "@/lib/interpretation";
 import { evaluatePatterns, type PatternFinding } from "@/lib/patterns";
 import { factorScores } from "@/lib/factors";
 import { prioritise, type Prioritisation } from "@/lib/priority";
+import { buildInterventionPlan, type InterventionPlan } from "@/lib/interventions/plan";
 import { contextSignals, ContextSchema } from "@/lib/context";
 
 export interface RankedDimension {
@@ -66,6 +67,8 @@ export interface AuditScores {
   patterns: PatternFinding[];
   /** Deterministic risk prioritisation + safeguarding routing (Phase 4). */
   prioritisation: Prioritisation;
+  /** Selected interventions, playbooks, and the 30-60-90 roadmap (Phase 5). */
+  interventionPlan: InterventionPlan;
 }
 
 const emptyDimensions = (): DimensionScores =>
@@ -153,6 +156,7 @@ export async function buildAuditScores(
       findings: [],
       patterns: [],
       prioritisation: { items: [], safeguardingCount: 0, summary: "" },
+      interventionPlan: { items: [], playbooks: [], roadmap: [], notes: [] },
     };
   }
 
@@ -209,6 +213,11 @@ export async function buildAuditScores(
     prioritisation.items.map((i) => [i.refId, i.priorityScore]),
   );
   for (const f of findings) f.priorityScore = priorityById.get(f.findingId) ?? 0;
+  const interventionPlan = buildInterventionPlan({
+    findings,
+    patterns,
+    contextSignals: signals,
+  });
 
   return {
     audit: auditMeta,
@@ -226,5 +235,6 @@ export async function buildAuditScores(
     findings,
     patterns,
     prioritisation,
+    interventionPlan,
   };
 }

@@ -52,6 +52,7 @@ const scores: AuditScores = {
   findings: [],
   patterns: [],
   prioritisation: { items: [], safeguardingCount: 0, summary: "" },
+  interventionPlan: { items: [], playbooks: [], roadmap: [], notes: [] },
 };
 
 describe("PDF report", () => {
