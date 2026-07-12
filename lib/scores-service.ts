@@ -25,6 +25,8 @@ import { evaluatePatterns, type PatternFinding } from "@/lib/patterns";
 import { factorScores } from "@/lib/factors";
 import { prioritise, type Prioritisation } from "@/lib/priority";
 import { buildInterventionPlan, type InterventionPlan } from "@/lib/interventions/plan";
+import { buildValidationGuides, type ValidationGuide } from "@/lib/validation";
+import { buildPulses, type PulseSurvey } from "@/lib/evaluation";
 import { contextSignals, ContextSchema } from "@/lib/context";
 
 export interface RankedDimension {
@@ -69,6 +71,9 @@ export interface AuditScores {
   prioritisation: Prioritisation;
   /** Selected interventions, playbooks, and the 30-60-90 roadmap (Phase 5). */
   interventionPlan: InterventionPlan;
+  /** Participatory-validation guides + targeted pulse surveys (Phase 6). */
+  validationGuides: ValidationGuide[];
+  pulses: PulseSurvey[];
 }
 
 const emptyDimensions = (): DimensionScores =>
@@ -157,6 +162,8 @@ export async function buildAuditScores(
       patterns: [],
       prioritisation: { items: [], safeguardingCount: 0, summary: "" },
       interventionPlan: { items: [], playbooks: [], roadmap: [], notes: [] },
+      validationGuides: [],
+      pulses: [],
     };
   }
 
@@ -218,6 +225,10 @@ export async function buildAuditScores(
     patterns,
     contextSignals: signals,
   });
+  const validationGuides = buildValidationGuides({ findings, patterns });
+  const pulses = buildPulses([
+    ...new Set(interventionPlan.items.flatMap((i) => i.intervention.factorIds)),
+  ]);
 
   return {
     audit: auditMeta,
@@ -236,5 +247,7 @@ export async function buildAuditScores(
     patterns,
     prioritisation,
     interventionPlan,
+    validationGuides,
+    pulses,
   };
 }

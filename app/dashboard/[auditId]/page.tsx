@@ -5,6 +5,7 @@ import { SetupNotice } from "@/components/SetupNotice";
 import { buildAuditScores } from "@/lib/scores-service";
 import { getAuditBenchmarks } from "@/lib/benchmark-service";
 import { getAuditAnnotations } from "@/lib/annotations-service";
+import { getValidationStatuses } from "@/lib/validation-service";
 import { isConsultant } from "@/lib/auth";
 import { recommendations } from "@/lib/recommendations";
 import { ninetyDayPlan } from "@/lib/report-content";
@@ -17,6 +18,7 @@ import { FinancialImpact } from "@/components/dashboard/FinancialImpact";
 import { FindingsSection } from "@/components/dashboard/FindingsSection";
 import { PrioritisedRisks } from "@/components/dashboard/PrioritisedRisks";
 import { InterventionPlanSection } from "@/components/dashboard/InterventionPlanSection";
+import { ValidateMeasureSection } from "@/components/dashboard/ValidateMeasureSection";
 import { CalculatorInputSchema } from "@/lib/calculator";
 import {
   BAND_META,
@@ -55,6 +57,7 @@ export default async function AuditDashboardPage({
   } = await supabase.auth.getUser();
   const consultant = isConsultant(user);
   const annotation = await getAuditAnnotations(supabase, params.auditId);
+  const validationStatuses = await getValidationStatuses(supabase, params.auditId);
 
   // The owner's saved business figures for the cost loop, if any.
   const { data: auditRow } = await supabase
@@ -214,6 +217,20 @@ export default async function AuditDashboardPage({
             subtitle="Primary-first interventions, full playbooks, and a phased 30-60-90 roadmap."
           >
             <InterventionPlanSection plan={scores.interventionPlan} />
+          </Section>
+
+          {/* Validate & measure (Phase 6) */}
+          <Section
+            title="Validate & measure"
+            subtitle="Confirm the hypotheses through consultation, then re-measure — findings stay preliminary until validated."
+          >
+            <ValidateMeasureSection
+              guides={scores.validationGuides}
+              pulses={scores.pulses}
+              statuses={validationStatuses}
+              consultant={consultant}
+              auditId={scores.audit.id}
+            />
           </Section>
 
           {/* 3. Benchmark — vs sector/size peers */}

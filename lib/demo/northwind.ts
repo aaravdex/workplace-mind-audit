@@ -149,6 +149,8 @@ export function getNorthwindDemo(): NorthwindDemo {
     patterns: [],
     prioritisation: { items: [], safeguardingCount: 0, summary: "" },
     interventionPlan: { items: [], playbooks: [], roadmap: [], notes: [] },
+    validationGuides: [],
+    pulses: [],
   };
 
   // ── Real benchmark engine (14-org SaaS / 50–199 pool) ──
