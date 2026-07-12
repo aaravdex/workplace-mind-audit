@@ -6,6 +6,7 @@ import { buildAuditScores } from "@/lib/scores-service";
 import { getAuditBenchmarks } from "@/lib/benchmark-service";
 import { getAuditAnnotations } from "@/lib/annotations-service";
 import { getValidationStatuses } from "@/lib/validation-service";
+import { getAuditActions } from "@/lib/actions-service";
 import { isConsultant } from "@/lib/auth";
 import { recommendations } from "@/lib/recommendations";
 import { ninetyDayPlan } from "@/lib/report-content";
@@ -19,6 +20,7 @@ import { FindingsSection } from "@/components/dashboard/FindingsSection";
 import { PrioritisedRisks } from "@/components/dashboard/PrioritisedRisks";
 import { InterventionPlanSection } from "@/components/dashboard/InterventionPlanSection";
 import { ValidateMeasureSection } from "@/components/dashboard/ValidateMeasureSection";
+import { ImplementationTracker } from "@/components/dashboard/ImplementationTracker";
 import { CalculatorInputSchema } from "@/lib/calculator";
 import {
   BAND_META,
@@ -58,6 +60,7 @@ export default async function AuditDashboardPage({
   const consultant = isConsultant(user);
   const annotation = await getAuditAnnotations(supabase, params.auditId);
   const validationStatuses = await getValidationStatuses(supabase, params.auditId);
+  const actions = await getAuditActions(supabase, params.auditId);
 
   // The owner's saved business figures for the cost loop, if any.
   const { data: auditRow } = await supabase
@@ -231,6 +234,14 @@ export default async function AuditDashboardPage({
               consultant={consultant}
               auditId={scores.audit.id}
             />
+          </Section>
+
+          {/* Implementation tracker (Phase 6) */}
+          <Section
+            title="Implementation tracker"
+            subtitle="Track each action, its status, evidence, and delivery fidelity — a plan not executed has not failed, it has not happened."
+          >
+            <ImplementationTracker auditId={scores.audit.id} actions={actions} />
           </Section>
 
           {/* 3. Benchmark — vs sector/size peers */}
