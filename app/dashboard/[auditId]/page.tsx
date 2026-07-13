@@ -9,8 +9,6 @@ import { getValidationStatuses } from "@/lib/validation-service";
 import { getAuditActions } from "@/lib/actions-service";
 import { isConsultant } from "@/lib/auth";
 import { recommendations } from "@/lib/recommendations";
-import { ninetyDayPlan } from "@/lib/report-content";
-import { InterventionPlan } from "@/components/dashboard/InterventionPlan";
 import { AuditStatusControl } from "@/components/dashboard/AuditStatusControl";
 import { Heatmap } from "@/components/dashboard/Heatmap";
 import { DimensionRadar } from "@/components/dashboard/DimensionRadar";
@@ -293,27 +291,6 @@ export default async function AuditDashboardPage({
               savedInputs={savedInputs}
             />
           </Section>
-
-          {/* 5. Recommended Interventions */}
-          <Section
-            title="Recommended interventions"
-            subtitle="Prescribed where action is needed — dimensions in Risk or Critical."
-          >
-            <Interventions
-              dimensions={scores.dimensions}
-              notes={annotation?.dimensionNotes ?? {}}
-            />
-          </Section>
-
-          {/* 7. 90-day intervention plan */}
-          <Section
-            title="90-day intervention plan"
-            subtitle="A phased programme: stabilise, rebuild, then embed and re-measure."
-          >
-            <InterventionPlan
-              windows={ninetyDayPlan(recommendations(scores.dimensions))}
-            />
-          </Section>
         </>
       )}
     </div>
@@ -569,59 +546,6 @@ function ConsultantNote({ text }: { text: string }) {
         Consultant&rsquo;s read
       </span>
       <p className="mt-1 text-sm italic text-brand-800">{text}</p>
-    </div>
-  );
-}
-
-function Interventions({
-  dimensions,
-  notes,
-}: {
-  dimensions: DimensionScores;
-  notes: Record<string, string>;
-}) {
-  const recs = recommendations(dimensions);
-
-  if (recs.length === 0) {
-    return (
-      <p className="rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800 ring-1 ring-inset ring-emerald-200">
-        No dimension is in the Risk or Critical band. Keep reinforcing what is
-        working and re-run the audit next quarter to track drift.
-      </p>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      {recs.map((rec) => (
-        <div
-          key={rec.dimension}
-          className="rounded-xl border border-brand-100 p-5"
-        >
-          <div className="flex items-center gap-2">
-            <BandBadge band={rec.band} />
-            <h3 className="font-medium text-brand-900">{rec.title}</h3>
-            <span className="ml-auto text-sm text-brand-400">
-              {DIMENSION_META[rec.dimension].label} · {rec.score}
-            </span>
-          </div>
-          <ul className="mt-3 space-y-1.5">
-            {rec.actions.map((action) => (
-              <li key={action} className="flex gap-2 text-sm text-brand-600">
-                <span aria-hidden className="text-accent-500">
-                  →
-                </span>
-                {action}
-              </li>
-            ))}
-          </ul>
-          {notes[rec.dimension] && (
-            <p className="mt-3 border-l-4 border-brand-900 bg-brand-50 p-3 text-sm italic text-brand-800">
-              {notes[rec.dimension]}
-            </p>
-          )}
-        </div>
-      ))}
     </div>
   );
 }
