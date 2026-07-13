@@ -61,9 +61,13 @@ function candidatesFor(cause: Cause): Intervention[] {
     const factorMatch = iv.factorIds.some((f) => cause.factorIds.includes(f));
     return patternMatch || factorMatch;
   }).sort((a, b) => {
-    // Primary first, then by evidence strength.
+    // Primary first; then a direct pattern (rootCauseTag) match leads a
+    // factor-only match; then by evidence strength.
     if (a.interventionLevel !== b.interventionLevel)
       return LEVEL_RANK[a.interventionLevel] - LEVEL_RANK[b.interventionLevel];
+    const aTag = cause.tag && a.rootCauseTags.includes(cause.tag) ? 0 : 1;
+    const bTag = cause.tag && b.rootCauseTags.includes(cause.tag) ? 0 : 1;
+    if (aTag !== bTag) return aTag - bTag;
     return EVIDENCE_RANK[a.evidenceStrength] - EVIDENCE_RANK[b.evidenceStrength];
   });
 }
