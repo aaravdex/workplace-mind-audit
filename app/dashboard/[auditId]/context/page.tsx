@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { SetupNotice } from "@/components/SetupNotice";
 import { ContextForm } from "@/components/dashboard/ContextForm";
+import { OpenTextSettings } from "@/components/dashboard/OpenTextSettings";
 import { ContextSchema, type AuditContext } from "@/lib/context";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,7 @@ export default async function AuditContextPage({
   // Owner-only via RLS: a non-owner (or unknown id) returns no row.
   const { data: audit } = await supabase
     .from("audits")
-    .select("id, title, context")
+    .select("id, title, context, collect_open_text, open_text_verbatims")
     .eq("id", params.auditId)
     .maybeSingle();
   if (!audit) notFound();
@@ -46,6 +47,23 @@ export default async function AuditContextPage({
         </p>
       </div>
       <ContextForm auditId={audit.id} initialContext={initialContext} />
+
+      <div className="rounded-xl border border-brand-100 bg-white p-5">
+        <h2 className="font-serif text-lg font-semibold text-brand-900">
+          Open-text feedback
+        </h2>
+        <p className="mt-1 text-xs text-brand-400">
+          Optional free-text questions on the employee survey — off unless you
+          enable it here.
+        </p>
+        <div className="mt-3">
+          <OpenTextSettings
+            auditId={audit.id}
+            collectOpenText={audit.collect_open_text === true}
+            openTextVerbatims={audit.open_text_verbatims === true}
+          />
+        </div>
+      </div>
     </div>
   );
 }

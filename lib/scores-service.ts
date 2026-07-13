@@ -27,6 +27,7 @@ import { prioritise, type Prioritisation } from "@/lib/priority";
 import { buildInterventionPlan, type InterventionPlan } from "@/lib/interventions/plan";
 import { buildValidationGuides, type ValidationGuide } from "@/lib/validation";
 import { buildPulses, type PulseSurvey } from "@/lib/evaluation";
+import { clusterOpenText, type OpenTextTheme } from "@/lib/openText";
 import { contextSignals, ContextSchema } from "@/lib/context";
 
 export interface RankedDimension {
@@ -74,6 +75,8 @@ export interface AuditScores {
   /** Participatory-validation guides + targeted pulse surveys (Phase 6). */
   validationGuides: ValidationGuide[];
   pulses: PulseSurvey[];
+  /** Deterministic open-text themes, redacted (Phase 7). */
+  openTextThemes: OpenTextTheme[];
 }
 
 const emptyDimensions = (): DimensionScores =>
@@ -99,7 +102,7 @@ export async function buildAuditScores(
   const { data: audit } = await supabase
     .from("audits")
     .select(
-      "id, title, status, public_token, created_at, segments, invited_count, reporting_threshold, context, cost_inputs, organisations(name, sector, size_band)",
+      "id, title, status, public_token, created_at, segments, invited_count, reporting_threshold, context, cost_inputs, open_text_verbatims, organisations(name, sector, size_band)",
     )
     .eq("id", auditId)
     .maybeSingle();
@@ -126,13 +129,24 @@ export async function buildAuditScores(
 
   const { data: rows } = await supabase
     .from("responses")
-    .select("segment, answers")
+    .select("segment, answers, open_text")
     .eq("audit_id", auditId);
 
   const responses: SurveyResponse[] = (rows ?? []).map((r) => ({
     segment: (r.segment as string | null) ?? null,
     answers: (r.answers as SurveyResponse["answers"]) ?? {},
   }));
+
+  const openTextEntries: { text: string; segment: string | null }[] = [];
+  for (const r of rows ?? []) {
+    const ot = (r as { open_text?: Record<string, string> | null }).open_text;
+    if (ot && typeof ot === "object") {
+      for (const v of Object.values(ot)) {
+        if (typeof v === "string" && v.trim())
+          openTextEntries.push({ text: v, segment: (r.segment as string | null) ?? null });
+      }
+    }
+  }
 
   const responseCount = responses.length;
 
@@ -164,6 +178,7 @@ export async function buildAuditScores(
       interventionPlan: { items: [], playbooks: [], roadmap: [], notes: [] },
       validationGuides: [],
       pulses: [],
+      openTextThemes: [],
     };
   }
 
@@ -229,6 +244,10 @@ export async function buildAuditScores(
   const pulses = buildPulses([
     ...new Set(interventionPlan.items.flatMap((i) => i.intervention.factorIds)),
   ]);
+  const openTextThemes = clusterOpenText(openTextEntries, {
+    reportingThreshold,
+    allowVerbatims: (audit.open_text_verbatims as boolean | null) === true,
+  });
 
   return {
     audit: auditMeta,
@@ -249,5 +268,6 @@ export async function buildAuditScores(
     interventionPlan,
     validationGuides,
     pulses,
+    openTextThemes,
   };
 }

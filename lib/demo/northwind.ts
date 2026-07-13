@@ -151,6 +151,7 @@ export function getNorthwindDemo(): NorthwindDemo {
     interventionPlan: { items: [], playbooks: [], roadmap: [], notes: [] },
     validationGuides: [],
     pulses: [],
+    openTextThemes: [],
   };
 
   // ── Real benchmark engine (14-org SaaS / 50–199 pool) ──

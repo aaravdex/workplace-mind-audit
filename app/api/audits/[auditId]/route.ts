@@ -26,12 +26,16 @@ const PatchSchema = z
       .int()
       .min(MIN_RESPONSES_PER_SEGMENT)
       .optional(),
+    collectOpenText: z.boolean().optional(),
+    openTextVerbatims: z.boolean().optional(),
   })
   .refine(
     (v) =>
       v.status !== undefined ||
       v.invitedCount !== undefined ||
-      v.reportingThreshold !== undefined,
+      v.reportingThreshold !== undefined ||
+      v.collectOpenText !== undefined ||
+      v.openTextVerbatims !== undefined,
     { message: "Nothing to update" },
   );
 
@@ -86,6 +90,12 @@ export async function PATCH(
   }
   if (parsed.data.reportingThreshold !== undefined) {
     patch.reporting_threshold = parsed.data.reportingThreshold;
+  }
+  if (parsed.data.collectOpenText !== undefined) {
+    patch.collect_open_text = parsed.data.collectOpenText;
+  }
+  if (parsed.data.openTextVerbatims !== undefined) {
+    patch.open_text_verbatims = parsed.data.openTextVerbatims;
   }
 
   const { data, error } = await supabase

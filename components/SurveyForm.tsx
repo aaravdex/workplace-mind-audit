@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Container } from "@/components/ui/Container";
 import { Disclaimer } from "@/components/Disclaimer";
 import { QUESTIONS, QUESTIONS_BY_DIMENSION } from "@/content/questions";
+import { OPEN_TEXT_QUESTIONS } from "@/lib/openText";
 import { DIMENSIONS, DIMENSION_META } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { LikertValue } from "@/types";
@@ -24,15 +25,18 @@ export function SurveyForm({
   token,
   title,
   segments,
+  collectOpenText = false,
   initialDone = false,
 }: {
   token: string;
   title: string;
   segments: string[];
+  collectOpenText?: boolean;
   /** Dev/preview only: render the thank-you state directly. */
   initialDone?: boolean;
 }) {
   const [answers, setAnswers] = useState<Answers>({});
+  const [openText, setOpenText] = useState<Record<number, string>>({});
   const [segment, setSegment] = useState<string>(PREFER_NOT);
   const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">(
     initialDone ? "done" : "idle",
@@ -63,6 +67,7 @@ export function SurveyForm({
           token,
           segment: segment === PREFER_NOT ? null : segment,
           answers,
+          openText,
         }),
       });
       if (!res.ok) throw new Error("Submission failed");
@@ -198,6 +203,36 @@ export function SurveyForm({
               </div>
             </fieldset>
           ))}
+
+          {collectOpenText && (
+            <fieldset>
+              <legend className="font-serif text-lg font-semibold text-brand-900">
+                In your own words (optional)
+              </legend>
+              <p className="mt-1 text-sm text-brand-500">
+                Free text — please avoid names or anything that could identify you
+                or anyone else.
+              </p>
+              <div className="mt-4 space-y-4">
+                {OPEN_TEXT_QUESTIONS.map((q) => (
+                  <div key={q.id} className="rounded-xl border border-brand-100 bg-white p-4">
+                    <label htmlFor={`ot-${q.id}`} className="text-sm text-brand-800">
+                      {q.text}
+                    </label>
+                    <textarea
+                      id={`ot-${q.id}`}
+                      rows={2}
+                      value={openText[q.id] ?? ""}
+                      onChange={(e) =>
+                        setOpenText((prev) => ({ ...prev, [q.id]: e.target.value }))
+                      }
+                      className="mt-2 w-full rounded-md border border-brand-200 px-3 py-2 text-sm outline-none focus:border-accent-400 focus:ring-2 focus:ring-accent-100"
+                    />
+                  </div>
+                ))}
+              </div>
+            </fieldset>
+          )}
 
           {status === "error" && (
             <p className="text-sm text-red-600">

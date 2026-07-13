@@ -114,6 +114,7 @@ describe("A3 — cost figure provenance is labelled", () => {
     interventionPlan: { items: [], playbooks: [], roadmap: [], notes: [] },
     validationGuides: [],
     pulses: [],
+    openTextThemes: [],
   };
   const cost = auditAdjustedCost(representativeBaseInputs("50-199", "GBP"), dims, {});
 

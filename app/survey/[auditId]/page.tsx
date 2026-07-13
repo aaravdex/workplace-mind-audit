@@ -25,7 +25,7 @@ export default async function SurveyPage({
 
   const { data: audit } = await admin
     .from("audits")
-    .select("title, status, segments")
+    .select("title, status, segments, collect_open_text")
     .eq("public_token", token)
     .maybeSingle();
 
@@ -45,6 +45,7 @@ export default async function SurveyPage({
       token={token}
       title={audit.title}
       segments={(audit.segments as string[]) ?? []}
+      collectOpenText={audit.collect_open_text === true}
     />
   );
 }

@@ -17,6 +17,7 @@ import { DimensionRadar } from "@/components/dashboard/DimensionRadar";
 import { BenchmarkView } from "@/components/dashboard/BenchmarkView";
 import { FinancialImpact } from "@/components/dashboard/FinancialImpact";
 import { FindingsSection } from "@/components/dashboard/FindingsSection";
+import { OpenTextThemes } from "@/components/dashboard/OpenTextThemes";
 import { PrioritisedRisks } from "@/components/dashboard/PrioritisedRisks";
 import { InterventionPlanSection } from "@/components/dashboard/InterventionPlanSection";
 import { ValidateMeasureSection } from "@/components/dashboard/ValidateMeasureSection";
@@ -205,6 +206,15 @@ export default async function AuditDashboardPage({
           >
             <FindingsSection findings={scores.findings} patterns={scores.patterns} />
           </Section>
+
+          {scores.openTextThemes.length > 0 && (
+            <Section
+              title="Open-text themes"
+              subtitle="What people said in their own words — redacted, clustered, with counts."
+            >
+              <OpenTextThemes themes={scores.openTextThemes} />
+            </Section>
+          )}
 
           {/* Prioritised risks (Phase 4) */}
           <Section

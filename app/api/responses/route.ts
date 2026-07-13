@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { QUESTIONS } from "@/content/questions";
+import { OPEN_TEXT_QUESTIONS, redactOpenText } from "@/lib/openText";
 import { hashIp, rateLimit, shortHash } from "@/lib/rate-limit";
 
 /**
@@ -27,6 +28,7 @@ const ResponseSchema = z.object({
   token: z.string().uuid(),
   segment: z.union([z.string().trim().min(1), z.null()]).optional(),
   answers: z.record(z.string(), LikertOrNull),
+  openText: z.record(z.string(), z.string()).optional(),
 });
 
 export async function POST(request: Request) {
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
       { status: 422 },
     );
   }
-  const { token, segment, answers } = parsed.data;
+  const { token, segment, answers, openText } = parsed.data;
 
   const tokenHash = shortHash(token);
   const cookieName = `wmar_${tokenHash}`;
@@ -76,7 +78,7 @@ export async function POST(request: Request) {
 
   const { data: audit } = await admin
     .from("audits")
-    .select("id, status, segments")
+    .select("id, status, segments, collect_open_text")
     .eq("public_token", token)
     .maybeSingle();
 
@@ -101,10 +103,21 @@ export async function POST(request: Request) {
   const allowed: string[] = audit.segments ?? [];
   const cleanSegment = segment && allowed.includes(segment) ? segment : null;
 
+  // Open-text is REDACTED server-side (raw identifiers are never stored) and kept
+  // only when the audit has opted in — and only for known open-text question ids.
+  const cleanOpenText: Record<number, string> = {};
+  if (audit.collect_open_text && openText) {
+    for (const q of OPEN_TEXT_QUESTIONS) {
+      const v = openText[String(q.id)];
+      if (typeof v === "string" && v.trim()) cleanOpenText[q.id] = redactOpenText(v);
+    }
+  }
+
   const { error } = await admin.from("responses").insert({
     audit_id: audit.id,
     segment: cleanSegment,
     answers: cleanAnswers,
+    open_text: Object.keys(cleanOpenText).length ? cleanOpenText : null,
   });
 
   if (error) {
