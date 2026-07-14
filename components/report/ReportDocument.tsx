@@ -11,6 +11,7 @@ import { DIMENSION_META, DISCLAIMER } from "@/lib/constants";
 import { COEFFICIENT_CATALOG } from "@/lib/coefficients";
 import { formatCurrency } from "@/lib/utils";
 import { leadershipInterpretation } from "@/lib/report-content";
+import { describeItemDriver } from "@/lib/interpretation";
 import { priorityClassLabel } from "@/lib/priority";
 import type { BenchmarkResult } from "@/lib/benchmark";
 import type { AdjustedCostBreakdown } from "@/lib/costModel";
@@ -187,7 +188,7 @@ export function ReportDocument({ data }: { data: ReportData }) {
             <Text style={styles.small}>Confidence: {f.confidence}</Text>
             <Text style={[styles.p, { marginTop: 4 }]}>{f.observation}</Text>
             {f.evidence.itemDrivers.length > 0 && (
-              <Bullets items={f.evidence.itemDrivers.map((d) => d.direction === "unfavourable" ? `${d.unfavourablePct}% did not endorse "${d.text}"` : `${d.favourablePct}% endorsed "${d.text}"`)} />
+              <Bullets items={f.evidence.itemDrivers.map(describeItemDriver)} />
             )}
             <Text style={[styles.p, { fontFamily: "Helvetica-Bold" }]}>{f.interpretation}</Text>
             {f.rootCauseHypotheses.length > 0 && (<><Text style={styles.small}>Possible causes to validate:</Text><Bullets items={f.rootCauseHypotheses} /></>)}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildFindings } from "@/lib/interpretation";
+import { buildFindings, describeItemDriver } from "@/lib/interpretation";
 import { computeDataQuality } from "@/lib/dataQuality";
 import { contextSignals } from "@/lib/context";
 import type { LikertValue, SurveyResponse } from "@/types";
@@ -101,6 +101,24 @@ describe("item-driver distribution math (reverse-aware)", () => {
     const q1 = f.evidence.responseDistributions.find((d) => d.questionId === 1)!;
     expect(q1.favourablePct).toBe(60);
     expect(q1.unfavourablePct).toBe(40);
+  });
+});
+
+describe("item-driver phrasing is reverse-aware", () => {
+  it("never says 'did not endorse' about a negative statement people agreed with", () => {
+    const f = findCap(responses(CRITICAL)); // Q3 "exhausted" answered 4 → unfavourable
+    const q3 = f.evidence.responseDistributions.find((d) => d.questionId === 3)!;
+    expect(q3.reverse).toBe(true);
+    expect(describeItemDriver(q3)).toMatch(/% reported “I often feel mentally exhausted/);
+    expect(describeItemDriver(q3)).not.toMatch(/did not endorse/);
+    const q1 = f.evidence.responseDistributions.find((d) => d.questionId === 1)!; // forward
+    expect(describeItemDriver(q1)).toMatch(/% did not endorse/);
+  });
+
+  it("describes healthy reverse items as 'did not report'", () => {
+    const f = findCap(responses(HEALTHY)); // Q3 answered 1 → favourable
+    const q3 = f.evidence.responseDistributions.find((d) => d.questionId === 3)!;
+    expect(describeItemDriver(q3)).toMatch(/% did not report/);
   });
 });
 

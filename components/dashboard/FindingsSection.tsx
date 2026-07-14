@@ -1,5 +1,5 @@
 import type { ConfidenceLevel } from "@/lib/dataQuality";
-import type { Finding } from "@/lib/interpretation";
+import { describeItemDriver, type Finding } from "@/lib/interpretation";
 import type { PatternFinding } from "@/lib/patterns";
 import { cn } from "@/lib/utils";
 
@@ -65,11 +65,7 @@ function FindingCard({ f }: { f: Finding }) {
               {f.evidence.itemDrivers.length > 0 && (
                 <List
                   title="What's driving it"
-                  items={f.evidence.itemDrivers.map((d) =>
-                    d.direction === "unfavourable"
-                      ? `${d.unfavourablePct}% did not endorse “${d.text}”`
-                      : `${d.favourablePct}% endorsed “${d.text}”`,
-                  )}
+                  items={f.evidence.itemDrivers.map(describeItemDriver)}
                 />
               )}
               {f.evidence.groupDifferences.length > 0 && (

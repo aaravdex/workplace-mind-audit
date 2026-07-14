@@ -41,10 +41,29 @@ export const CAUSATION_DISCLAIMER =
 export interface ItemDriver {
   questionId: number;
   text: string;
+  /** True when agreement with the item indicates WORSE wellbeing. */
+  reverse: boolean;
   favourablePct: number;
   neutralPct: number;
   unfavourablePct: number;
   direction: "favourable" | "unfavourable";
+}
+
+/**
+ * The one place a driver becomes prose — reverse-aware, so a negative item is
+ * never described backwards. For "I often feel mentally exhausted" (reverse),
+ * an unfavourable answer means people AGREED with it: "60% reported …", never
+ * "60% did not endorse …".
+ */
+export function describeItemDriver(d: ItemDriver): string {
+  if (d.direction === "unfavourable") {
+    return d.reverse
+      ? `${d.unfavourablePct}% reported “${d.text}”`
+      : `${d.unfavourablePct}% did not endorse “${d.text}”`;
+  }
+  return d.reverse
+    ? `${d.favourablePct}% did not report “${d.text}”`
+    : `${d.favourablePct}% endorsed “${d.text}”`;
 }
 
 export interface GroupDifference {
@@ -197,6 +216,7 @@ function itemDistribution(
   return {
     questionId: question.id,
     text: question.text,
+    reverse: question.reverse,
     favourablePct,
     neutralPct: pct(neu),
     unfavourablePct,
@@ -302,9 +322,7 @@ export function buildFinding(
   const clauses = contextClauses(contextSignals);
   const topDriver = itemDrivers[0];
   const driverPhrase = topDriver
-    ? atRisk
-      ? `most notably, ${topDriver.unfavourablePct}% did not endorse “${topDriver.text}”`
-      : `most notably, ${topDriver.favourablePct}% endorsed “${topDriver.text}”`
+    ? `most notably, ${describeItemDriver(topDriver)}`
     : "no single item dominates the result";
 
   const observation = `The data shows ${label} scored ${score}/100 (${LEVEL_LABEL[level]}), based on ${dimResponseCount} responses.`;
