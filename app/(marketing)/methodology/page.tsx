@@ -4,12 +4,45 @@ import { Disclaimer } from "@/components/Disclaimer";
 import { ButtonLink } from "@/components/ui/Button";
 import { DIMENSIONS, DIMENSION_META } from "@/lib/constants";
 import { COEFFICIENT_CATALOG } from "@/lib/coefficients";
+import {
+  TA_CITATION,
+  TA_METHOD_STATEMENT,
+  TA_QUALITY_ATTRIBUTION,
+  TA_QUALITY_CHECKLIST,
+} from "@/lib/ta-methodology";
 
 export const metadata: Metadata = {
   title: "Methodology",
   description:
-    "How the 5C model is scored and exactly how we model cost — every coefficient shown with its published source.",
+    "How the 5C model is scored, how findings and open-text themes are produced, and exactly how we model cost — every coefficient shown with its published source.",
 };
+
+const ANALYSIS_STEPS: { name: string; body: string }[] = [
+  {
+    name: "Data quality & confidence",
+    body: "Every finding carries a confidence rating — from insufficient to high — based on sample size, response rate and answer quality, so nothing ever sounds more certain than the evidence allows.",
+  },
+  {
+    name: "Findings",
+    body: "For each dimension we separate what we observed (the scores and item responses) from what it might mean (interpretation) from why it might be happening (hypotheses). Hypotheses are always labelled as hypotheses to validate — never stated as fact.",
+  },
+  {
+    name: "Patterns",
+    body: "Where several factors combine into a recognised risk pattern, we name it — as a pattern to test, not a proven cause.",
+  },
+  {
+    name: "Prioritisation",
+    body: "Risks are ranked by severity, reach, business impact, confidence and how feasibly they can be changed — so you act on the few things that matter first, not everything at once.",
+  },
+  {
+    name: "Interventions",
+    body: "Each recommendation has a named accountable owner, concrete steps, and both leading and lagging measures. Individual support (EAP, occupational health) is always placed beneath the work-design change, never offered as a substitute for it.",
+  },
+  {
+    name: "Validation & measurement",
+    body: "Findings are preliminary until confirmed through focus groups and operational data. We provide the discussion guides and the re-measurement pulses that turn a preliminary read into a confirmed one.",
+  },
+];
 
 const COST_LINES: { name: string; formula: string; note: string }[] = [
   {
@@ -42,13 +75,15 @@ export default function MethodologyPage() {
           Transparency
         </p>
         <h1 className="mt-3 text-4xl font-semibold text-brand-900">
-          The 5C model &amp; how we model cost
+          How the audit works — from evidence to action
         </h1>
         <p className="mt-4 text-lg text-brand-600">
           Provenance is the point. A number you can trace is a number a CFO can
-          trust. Below is exactly how we score the five dimensions, how each cost
+          trust. Below is exactly how we score the five dimensions, how we turn
+          responses into defensible findings and open-text themes, how each cost
           line is computed, and every coefficient behind the financial estimate —
-          each shown with its published source and framed as a modelled estimate.
+          each framed as a modelled estimate with its published source. The whole
+          analysis is deterministic: no AI, no black box.
         </p>
       </div>
 
@@ -75,6 +110,60 @@ export default function MethodologyPage() {
             </div>
           ))}
         </dl>
+      </section>
+
+      {/* How the analysis works */}
+      <section className="mt-14 max-w-3xl">
+        <h2 className="text-2xl font-semibold text-brand-900">
+          How the analysis works
+        </h2>
+        <p className="mt-3 text-brand-600">
+          A score on its own is not a diagnosis. Every audit runs the same
+          deterministic analysis that turns responses into a defensible read:
+        </p>
+        <div className="mt-6 space-y-3">
+          {ANALYSIS_STEPS.map((step) => (
+            <div
+              key={step.name}
+              className="rounded-xl border border-brand-100 bg-white p-5"
+            >
+              <h3 className="text-base font-semibold text-brand-900">
+                {step.name}
+              </h3>
+              <p className="mt-2 text-sm text-brand-500">{step.body}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-6 rounded-xl border border-brand-100 bg-brand-50 p-5 text-sm text-brand-600">
+          <span className="font-semibold text-brand-900">
+            Two lines we never cross.
+          </span>{" "}
+          We never diagnose an individual or infer a mental-health condition —
+          results are aggregate patterns only, and no employer ever sees an
+          individual response. And because a survey is a snapshot in time, we
+          never claim it proves cause.
+        </p>
+      </section>
+
+      {/* Open-text: reflexive thematic analysis */}
+      <section className="mt-14 max-w-3xl">
+        <h2 className="text-2xl font-semibold text-brand-900">
+          Open-text: reflexive thematic analysis
+        </h2>
+        <p className="mt-3 text-brand-600">{TA_METHOD_STATEMENT}</p>
+        <ul className="mt-6 space-y-2">
+          {TA_QUALITY_CHECKLIST.map((item) => (
+            <li key={item} className="flex gap-3 text-sm text-brand-600">
+              <span aria-hidden className="text-accent-500">
+                &middot;
+              </span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="mt-4 text-xs italic text-brand-400">
+          {TA_QUALITY_ATTRIBUTION} {TA_CITATION}
+        </p>
       </section>
 
       {/* How costs are modelled */}
