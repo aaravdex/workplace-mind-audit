@@ -151,3 +151,135 @@ describe("determinism", () => {
     expect(JSON.stringify(a)).toBe(JSON.stringify(b));
   });
 });
+
+// ── TA-2: consultant reflexive review (Phases 4–5) ────────────────────────────
+
+describe("reviewedThemes — default (no review supplied)", () => {
+  const workload = (n: number) =>
+    Array.from({ length: n }, () => e("workload too much, understaffed"));
+
+  it("returns every candidate as an unreviewed candidate", () => {
+    const ta = analyseOpenText(workload(6), opts);
+    const wl = ta.reviewedThemes.find((t) => t.id === "ct-workload")!;
+    expect(wl.status).toBe("candidate");
+    expect(wl.reviewed).toBe(false);
+    expect(wl.name).toBe("Unsustainable workload & pace"); // provisional
+    expect(wl.mergedFrom).toEqual([]);
+    expect(ta.reviewedThemes.length).toBe(ta.candidateThemes.length);
+  });
+});
+
+describe("reviewedThemes — keep + name + define (Phase 5)", () => {
+  it("confirms the theme and uses the consultant's name and definition", () => {
+    const ta = analyseOpenText(
+      Array.from({ length: 6 }, () => e("workload too much, understaffed, rushed deadlines")),
+      {
+        ...opts,
+        review: {
+          "ct-workload": {
+            decision: "keep",
+            name: "Chronic overload in Ops",
+            definition: "Demand persistently exceeds the team's capacity.",
+            note: "Corroborated in the ops focus group.",
+          },
+        },
+      },
+    );
+    const wl = ta.reviewedThemes.find((t) => t.id === "ct-workload")!;
+    expect(wl.status).toBe("confirmed");
+    expect(wl.reviewed).toBe(true);
+    expect(wl.name).toBe("Chronic overload in Ops");
+    expect(wl.definition).toMatch(/exceeds the team/);
+    expect(wl.note).toMatch(/focus group/);
+  });
+});
+
+describe("reviewedThemes — discard (Phase 4)", () => {
+  it("removes a discarded candidate from the reviewed set", () => {
+    const entries = [
+      ...Array.from({ length: 6 }, () => e("workload too much")),
+      ...Array.from({ length: 4 }, () => e("the office is too cold and the coffee machine broke; also flexibility")),
+    ];
+    const ta = analyseOpenText(entries, {
+      ...opts,
+      review: { "ct-wellbeing": { decision: "discard", note: "Facilities gripe, not wellbeing." } },
+    });
+    expect(ta.reviewedThemes.find((t) => t.id === "ct-wellbeing")).toBeUndefined();
+    // still present as a raw candidate (machine layer is unchanged)
+    expect(ta.candidateThemes.find((t) => t.id === "ct-wellbeing")).toBeDefined();
+  });
+});
+
+describe("reviewedThemes — merge (Phase 4) with exact prevalence math", () => {
+  it("folds one theme into another without double-counting shared comments", () => {
+    // 3 comments hit BOTH workload and wellbeing; 2 hit workload only.
+    const both = Array.from({ length: 3 }, () => e("workload too much and I feel burnout"));
+    const wlOnly = Array.from({ length: 2 }, () => e("understaffed, rushed deadlines"));
+    const ta = analyseOpenText([...both, ...wlOnly], {
+      ...opts,
+      review: {
+        "ct-wellbeing": { decision: "merge", mergedInto: "ct-workload" },
+        "ct-workload": { decision: "keep", name: "Overload & strain" },
+      },
+    });
+    const merged = ta.reviewedThemes.find((t) => t.id === "ct-workload")!;
+    // union of {burnout comments} and {workload comments} = 5 distinct, NOT 3+5.
+    expect(merged.prevalence).toBe(5);
+    expect(merged.mergedFrom).toContain("Wellbeing, recovery & support");
+    expect(ta.reviewedThemes.find((t) => t.id === "ct-wellbeing")).toBeUndefined();
+    expect(merged.name).toBe("Overload & strain");
+  });
+
+  it("ignores a merge whose target was discarded (source survives standalone)", () => {
+    const entries = [
+      ...Array.from({ length: 4 }, () => e("workload too much")),
+      ...Array.from({ length: 4 }, () => e("micromanaged, no autonomy, waiting for approval")),
+    ];
+    const ta = analyseOpenText(entries, {
+      ...opts,
+      review: {
+        "ct-workload": { decision: "discard" },
+        "ct-control": { decision: "merge", mergedInto: "ct-workload" },
+      },
+    });
+    // target discarded → merge ignored → control stays as its own reviewed theme
+    const control = ta.reviewedThemes.find((t) => t.id === "ct-control");
+    expect(control).toBeDefined();
+    expect(control!.mergedFrom).toEqual([]);
+    expect(ta.reviewedThemes.find((t) => t.id === "ct-workload")).toBeUndefined();
+  });
+
+  it("does not infinite-loop on a merge cycle", () => {
+    const entries = [
+      ...Array.from({ length: 4 }, () => e("workload too much")),
+      ...Array.from({ length: 4 }, () => e("unclear priorities, mixed messages")),
+    ];
+    const ta = analyseOpenText(entries, {
+      ...opts,
+      review: {
+        "ct-workload": { decision: "merge", mergedInto: "ct-clarity" },
+        "ct-clarity": { decision: "merge", mergedInto: "ct-workload" },
+      },
+    });
+    // Cycle resolves without hanging; both comment-sets survive somewhere.
+    const total = ta.reviewedThemes.reduce((s, t) => s + t.prevalence, 0);
+    expect(total).toBeGreaterThanOrEqual(8);
+  });
+});
+
+describe("reviewedThemes — determinism with a review", () => {
+  it("is stable across runs", () => {
+    const entries = [
+      e("workload too much", "A"),
+      e("burnout and stress", "B"),
+      e("unclear priorities", "A"),
+    ];
+    const review = {
+      "ct-wellbeing": { decision: "merge" as const, mergedInto: "ct-workload" },
+      "ct-workload": { decision: "keep" as const, name: "Strain" },
+    };
+    const a = analyseOpenText(entries, { ...opts, review });
+    const b = analyseOpenText(entries, { ...opts, review });
+    expect(JSON.stringify(a)).toBe(JSON.stringify(b));
+  });
+});
