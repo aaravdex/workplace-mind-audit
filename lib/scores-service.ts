@@ -27,7 +27,8 @@ import { prioritise, type Prioritisation } from "@/lib/priority";
 import { buildInterventionPlan, type InterventionPlan } from "@/lib/interventions/plan";
 import { buildValidationGuides, type ValidationGuide } from "@/lib/validation";
 import { buildPulses, type PulseSurvey } from "@/lib/evaluation";
-import { clusterOpenText, type OpenTextTheme } from "@/lib/openText";
+import { analyseOpenText, type ThematicAnalysis } from "@/lib/thematicAnalysis";
+import { getThemeReview } from "@/lib/theme-review-service";
 import { contextSignals, ContextSchema } from "@/lib/context";
 
 export interface RankedDimension {
@@ -75,8 +76,9 @@ export interface AuditScores {
   /** Participatory-validation guides + targeted pulse surveys (Phase 6). */
   validationGuides: ValidationGuide[];
   pulses: PulseSurvey[];
-  /** Deterministic open-text themes, redacted (Phase 7). */
-  openTextThemes: OpenTextTheme[];
+  /** Reflexive thematic analysis of open-text: deterministic first pass +
+   *  consultant review (Method A). Null until open-text answers exist. */
+  thematicAnalysis: ThematicAnalysis | null;
 }
 
 const emptyDimensions = (): DimensionScores =>
@@ -137,13 +139,19 @@ export async function buildAuditScores(
     answers: (r.answers as SurveyResponse["answers"]) ?? {},
   }));
 
-  const openTextEntries: { text: string; segment: string | null }[] = [];
+  const openTextEntries: { text: string; segment: string | null; questionId?: number }[] = [];
   for (const r of rows ?? []) {
     const ot = (r as { open_text?: Record<string, string> | null }).open_text;
     if (ot && typeof ot === "object") {
-      for (const v of Object.values(ot)) {
-        if (typeof v === "string" && v.trim())
-          openTextEntries.push({ text: v, segment: (r.segment as string | null) ?? null });
+      for (const [key, v] of Object.entries(ot)) {
+        if (typeof v === "string" && v.trim()) {
+          const qid = Number(key);
+          openTextEntries.push({
+            text: v,
+            segment: (r.segment as string | null) ?? null,
+            ...(Number.isFinite(qid) ? { questionId: qid } : {}),
+          });
+        }
       }
     }
   }
@@ -178,7 +186,7 @@ export async function buildAuditScores(
       interventionPlan: { items: [], playbooks: [], roadmap: [], notes: [] },
       validationGuides: [],
       pulses: [],
-      openTextThemes: [],
+      thematicAnalysis: null,
     };
   }
 
@@ -244,10 +252,14 @@ export async function buildAuditScores(
   const pulses = buildPulses([
     ...new Set(interventionPlan.items.flatMap((i) => i.intervention.factorIds)),
   ]);
-  const openTextThemes = clusterOpenText(openTextEntries, {
-    reportingThreshold,
-    allowVerbatims: (audit.open_text_verbatims as boolean | null) === true,
-  });
+  const thematicAnalysis =
+    openTextEntries.length > 0
+      ? analyseOpenText(openTextEntries, {
+          reportingThreshold,
+          allowVerbatims: (audit.open_text_verbatims as boolean | null) === true,
+          review: await getThemeReview(supabase, auditId),
+        })
+      : null;
 
   return {
     audit: auditMeta,
@@ -268,6 +280,6 @@ export async function buildAuditScores(
     interventionPlan,
     validationGuides,
     pulses,
-    openTextThemes,
+    thematicAnalysis,
   };
 }

@@ -15,7 +15,7 @@ import { DimensionRadar } from "@/components/dashboard/DimensionRadar";
 import { BenchmarkView } from "@/components/dashboard/BenchmarkView";
 import { FinancialImpact } from "@/components/dashboard/FinancialImpact";
 import { FindingsSection } from "@/components/dashboard/FindingsSection";
-import { OpenTextThemes } from "@/components/dashboard/OpenTextThemes";
+import { ThematicAnalysisSection } from "@/components/dashboard/ThematicAnalysisSection";
 import { PrioritisedRisks } from "@/components/dashboard/PrioritisedRisks";
 import { InterventionPlanSection } from "@/components/dashboard/InterventionPlanSection";
 import { ValidateMeasureSection } from "@/components/dashboard/ValidateMeasureSection";
@@ -205,12 +205,15 @@ export default async function AuditDashboardPage({
             <FindingsSection findings={scores.findings} patterns={scores.patterns} />
           </Section>
 
-          {scores.openTextThemes.length > 0 && (
+          {scores.thematicAnalysis && scores.thematicAnalysis.reviewedThemes.length > 0 && (
             <Section
               title="Open-text themes"
-              subtitle="What people said in their own words — redacted, clustered, with counts."
+              subtitle="Reflexive thematic analysis of what people said — a deterministic first pass, reviewed by the consultant. Redacted; nothing shown below the anonymity threshold."
             >
-              <OpenTextThemes themes={scores.openTextThemes} />
+              <ThematicAnalysisSection
+                ta={scores.thematicAnalysis}
+                reportingThreshold={scores.reportingThreshold}
+              />
             </Section>
           )}
 

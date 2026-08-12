@@ -55,7 +55,7 @@ const scores: AuditScores = {
   interventionPlan: { items: [], playbooks: [], roadmap: [], notes: [] },
   validationGuides: [],
   pulses: [],
-  openTextThemes: [],
+  thematicAnalysis: null,
 };
 
 describe("PDF report", () => {

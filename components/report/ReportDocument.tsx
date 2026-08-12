@@ -12,6 +12,12 @@ import { COEFFICIENT_CATALOG } from "@/lib/coefficients";
 import { formatCurrency } from "@/lib/utils";
 import { leadershipInterpretation } from "@/lib/report-content";
 import { describeItemDriver } from "@/lib/interpretation";
+import {
+  TA_CITATION,
+  TA_METHOD_STATEMENT,
+  TA_QUALITY_ATTRIBUTION,
+  TA_QUALITY_CHECKLIST,
+} from "@/lib/ta-methodology";
 import { priorityClassLabel } from "@/lib/priority";
 import type { BenchmarkResult } from "@/lib/benchmark";
 import type { AdjustedCostBreakdown } from "@/lib/costModel";
@@ -292,18 +298,56 @@ export function ReportDocument({ data }: { data: ReportData }) {
         </Page>
       )}
 
-      {/* ── Open-text themes ── */}
-      {scores.openTextThemes.length > 0 && (
+      {/* ── Open-text: reflexive thematic analysis ── */}
+      {scores.thematicAnalysis && scores.thematicAnalysis.reviewedThemes.length > 0 && (
         <Page style={styles.page} wrap>
           <Text style={styles.eyebrow}>In their own words</Text>
           <Text style={styles.h1}>Open-text themes</Text>
-          <Text style={[styles.small, { marginTop: 6 }]}>Redacted and clustered. Verbatims appear only where permitted and safely anonymised.</Text>
-          {scores.openTextThemes.map((t) => (
-            <View key={t.theme} style={styles.card} wrap={false}>
-              <Text style={styles.h3}>{t.theme} — {t.count} mention{t.count === 1 ? "" : "s"} ({t.sentiment})</Text>
-              {t.sampleQuotes.map((q) => (<Text key={q} style={[styles.p, { fontStyle: "italic" }]}>&ldquo;{q}&rdquo;</Text>))}
-            </View>
-          ))}
+          <Text style={[styles.p, { marginTop: 6 }]}>
+            {scores.thematicAnalysis.familiarisation.totalComments} comment
+            {scores.thematicAnalysis.familiarisation.totalComments === 1 ? "" : "s"}, averaging{" "}
+            {scores.thematicAnalysis.familiarisation.meanWordCount} words.
+            {scores.thematicAnalysis.familiarisation.uncodedCount > 0
+              ? ` ${scores.thematicAnalysis.familiarisation.uncodedCount} did not match the codebook and were set aside for manual reading.`
+              : ""}
+          </Text>
+          {scores.thematicAnalysis.reviewedThemes.map((t) => {
+            const segs = t.bySegment.filter((s) => s.count >= scores.reportingThreshold);
+            return (
+              <View key={t.id} style={styles.card} wrap={false}>
+                <View style={[styles.row, { justifyContent: "space-between", alignItems: "center" }]}>
+                  <Text style={styles.h3}>{t.name}</Text>
+                  <Text style={[styles.badge, { backgroundColor: t.status === "confirmed" ? LEVEL_HEX.healthy : LEVEL_HEX.high }]}>
+                    {t.status === "confirmed" ? "Confirmed" : "Candidate"}
+                  </Text>
+                </View>
+                <Text style={styles.small}>
+                  {t.prevalence} mention{t.prevalence === 1 ? "" : "s"} · {t.tone}
+                  {t.thin ? " · thin — treat with caution" : ""}
+                </Text>
+                <Text style={[styles.p, { marginTop: 3 }]}>{t.definition}</Text>
+                {t.mergedFrom.length > 0 && (
+                  <Text style={styles.small}>Merged in: {t.mergedFrom.join(", ")}</Text>
+                )}
+                {t.codes.length > 0 && (
+                  <Text style={styles.small}>Codes: {t.codes.map((c) => `${c.label} (${c.count})`).join(", ")}</Text>
+                )}
+                {segs.length > 0 && (
+                  <Text style={styles.small}>Where it concentrates: {segs.map((s) => `${s.segment} (${s.count})`).join(", ")}</Text>
+                )}
+                {t.illustrativeExtracts.map((q) => (
+                  <Text key={q} style={[styles.p, { fontStyle: "italic", marginTop: 2 }]}>&ldquo;{q}&rdquo;</Text>
+                ))}
+                {t.note ? <Text style={[styles.small, { marginTop: 2 }]}>Consultant note: {t.note}</Text> : null}
+              </View>
+            );
+          })}
+          <View style={[styles.card, { backgroundColor: C.bg }]} wrap={false}>
+            <Text style={styles.h3}>How these themes were produced</Text>
+            <Text style={[styles.p, { marginTop: 4 }]}>{TA_METHOD_STATEMENT}</Text>
+            <Bullets items={TA_QUALITY_CHECKLIST} />
+            <Text style={styles.small}>{TA_QUALITY_ATTRIBUTION} {TA_CITATION}</Text>
+          </View>
           <Footer />
         </Page>
       )}
